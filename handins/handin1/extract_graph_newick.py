@@ -15,13 +15,12 @@ newick_strings = read_phylogenetic_tree("handins/handin1/newick.tre")
 class AdjacencyList:
     # directed unweighted adjacency list representation of a graph
     # stores all outgoing edges for each vertex
-    # allows for edges going from a vertex to it self (so far)
     def __init__(self) -> None:
         self.adjList = {}
 
     def add_vertex(self, vertex: str) -> None:
         if vertex not in self.adjList.keys():
-            self.adjList[vertex] = []  # create the vertex if it does not already exists
+            self.adjList[vertex] = []
 
     def add_edge(self, start_vertex: str, end_vertex: str) -> None:
         if (start_vertex not in self.adjList.keys()) or (
@@ -41,7 +40,7 @@ class AdjacencyList:
 
 
 def main():
-    graph_representations1 = []  # to store the adjacency lists
+    graph_representations = []  # stores the graph representations for each tree
 
     for tree in newick_strings:
         tree = Tree(tree, format=8)
@@ -67,9 +66,9 @@ def main():
                     adjList.add_vertex(child_node.name)
                     adjList.add_edge(start_vertex=node.name, end_vertex=child_node.name)
 
-        graph_representations1.append(adjList)
+        graph_representations.append(adjList)
 
-    print(graph_representations1[0])  # example
+    print(graph_representations[0])  # example
 
 
 if __name__ == "__main__":
