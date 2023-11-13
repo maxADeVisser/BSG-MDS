@@ -1,0 +1,82 @@
+```{r}
+install.packages("genetics")
+```
+
+```{r}
+library(dplyr)
+
+### Load the data
+# Specify the file path to your .raw data file
+file_path_SNP <- "./TSICHR22RAW.raw"
+df <- read.table(file_path_SNP, header = TRUE)
+
+# Fitler out non-genetic informations columns
+df <- df[,7:ncol(df)]
+```
+
+```{r}
+### 1 How many variants are there in this database? What percentage of the data is missing?
+n_variants = ncol(df)
+print("Number of variants in the dataset:")
+print(n_variants)
+print("Percentages missing data:")
+n_missing = sum(is.na(df))
+total_data_points = ncol(df) * nrow(df)
+perc_missing = (n_missing / total_data_points)*100
+perc_missing
+
+```
+
+```{r}
+### 2 Calculate the percentage of monomorphic variants. 
+# Exclude all monomorphics from the database for all posterior computations of the practical. 
+# How many variants do remain in your database?
+monomorphic <- sapply(df, function(x) length(unique(na.omit(x))) == 1)
+length(df)
+cat("Percentage of monomorphic variants:", (sum(monomorphic)/n_variants)*100, "%\n")
+df_mono <- df[, !monomorphic]
+ncol(df_mono)
+```
+```{r}
+# Task 3
+specific_variant <- df_mono[,"rs8138488_C"] # Replace with the correct column name
+genotype_counts <- table(specific_variant)
+minor_allele_count <- min(genotype_counts)
+maf <- minor_allele_count / sum(genotype_counts)
+cat("Genotype counts: ") 
+genotype_counts
+cat("Minor allele count: ", minor_allele_count)
+cat("\nMAF", maf)
+```
+```{r}
+# Task 4
+calculate_maf <- function(genotype_counts) {
+  #if (length(genotype_counts) == 1) return(0) # Monomorphic case
+  minor_allele_count <- min(genotype_counts)
+  return(minor_allele_count / sum(genotype_counts))
+}
+maf_values <- apply(df_mono, 2, function(x) calculate_maf(table(x)))
+hist(maf_values, breaks = 30, main="Histogram of MAF for all genetic markers", xlab="MAF")
+maf_below_05 <- sum(maf_values < 0.05) / length(maf_values) * 100; maf_below_05
+maf_below_01 <- sum(maf_values < 0.01) / length(maf_values) * 100; maf_below_01
+```
+
+
+```{r}
+# Task 5
+obs_het <- apply(df_mono, 2, function(x) {
+  genotype_counts <- table(x)
+  return(genotype_counts["1"] / sum(genotype_counts))
+})
+hist(obs_het, breaks = 30, main="Histogram of Observed Heterozygosity", xlab="Heterozygosity")
+```
+
+```{r}
+# Task 6: Compute expected heterozygosity and make a histogram
+expected_het <- apply(df_mono, 2, function(x) {
+  allele_freqs <- table(x) / sum(table(x))
+  return(1 - sum(allele_freqs^2))
+})
+hist(expected_het, breaks = 50, main="Histogram of Expected Heterozygosity", xlab="Heterozygosity")
+mean(expected_het)
+```
