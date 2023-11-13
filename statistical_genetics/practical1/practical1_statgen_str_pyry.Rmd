@@ -1,0 +1,43 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library(HardyWeinberg)
+data(NistSTRs)
+head(NistSTRs)
+num_individuals <- nrow(NistSTRs); num_individuals
+num_STRs <- ncol(NistSTRs) / 2; num_STRs
+
+```
+
+```{r}
+# Task2
+allele_counts <- c() 
+for (i in seq(1, ncol(NistSTRs), by = 2)) {
+  
+  str_data <- c(NistSTRs[, i], NistSTRs[, i + 1])
+ 
+  unique_alleles <- length(unique(str_data))
+  
+  allele_counts <- c(allele_counts, unique_alleles)
+}
+locus_names <- colnames(NistSTRs)[seq(1, ncol(NistSTRs), by = 2)]
+locus_names <- sub("-1", "", locus_names)
+
+allele_counts_df <- setNames(data.frame(t(allele_counts), nrow = 1), locus_names);allele_counts_df
+
+# Basic descriptive statistics
+mean_alleles <- mean(allele_counts); mean_alleles
+sd_alleles <- sd(allele_counts); sd_alleles
+median_alleles <- median(allele_counts); median_alleles
+min_alleles <- min(allele_counts); min_alleles
+max_alleles <- max(allele_counts); max_alleles
+```
+
+```{r}
+# Task3
+allele_table <- table(allele_counts); allele_table
+barplot(allele_table, main="Number of STRs by Number of Alleles", xlab="Number of Alleles", ylab="Number of STRs")
+```
