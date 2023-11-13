@@ -31,6 +31,7 @@ max_alleles <- max(allele_counts); max_alleles
 ```
 
 ```{r}
+# Task3
 allele_table <- table(allele_counts); allele_table
 barplot(allele_table, main="Number of STRs by Number of Alleles", xlab="Number of Alleles", ylab="Number of STRs")
 ```
