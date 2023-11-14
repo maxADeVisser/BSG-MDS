@@ -41,3 +41,51 @@ max_alleles <- max(allele_counts); max_alleles
 allele_table <- table(allele_counts); allele_table
 barplot(allele_table, main="Number of STRs by Number of Alleles", xlab="Number of Alleles", ylab="Number of STRs")
 ```
+
+```{r}
+# Task 4
+calculate_expected_heterozygosity <- function(chromosome1, chromosome2) {
+  allele_counts <- table(c(chromosome1, chromosome2))
+  allele_frequencies <- allele_counts / sum(allele_counts)
+  expected_heterozygosity <- 1 - sum(allele_frequencies^2)
+  return(expected_heterozygosity)
+}
+
+expected_heterozygosities <- c()
+
+for (i in seq(1, ncol(NistSTRs), by=2)) {
+  obs_her <- calculate_expected_heterozygosity(NistSTRs[,i], NistSTRs[,i+1])
+  expected_heterozygosities <- c(expected_heterozygosities, obs_her)
+}
+
+print("Average expected heterozygosity")
+print(mean(expected_heterozygosities))
+
+hist(expected_heterozygosities, main = "Expected Heterozygosity Histogram", xlab = "Expected Heterozygosity", xlim=c(0,1))
+```
+
+```{r}
+calculate_observed_heterozygosity <- function(chromosome1, chromosome2) {
+  heterozygous <- chromosome1 != chromosome2
+  heterozygosity <- sum(heterozygous) / length(heterozygous)
+  return(heterozygosity)
+}
+
+observed_heterozygosities <- c()
+
+for (i in seq(1, ncol(NistSTRs), by=2)) {
+  obs_het <- calculate_observed_heterozygosity(NistSTRs[,i], NistSTRs[,i+1])
+  observed_heterozygosities <- c(observed_heterozygosities, obs_het)
+}
+
+alpha <- 70
+c1 <- rgb(0,0,255,max = 255, alpha = alpha)
+c2 <- rgb(0,255,0,max = 255, alpha = alpha)
+hist(observed_heterozygosities, col = c1, xlim=c(0,1), main="Observed vs. Expected Heterozygosities for all STRs")
+hist(expected_heterozygosities, add = TRUE, col = c2, xlim=c(0,1))
+legend("topright", legend = c("Observed", "Expected"), 
+       fill = c(c1, c2), border = "white")
+
+#print("Average observed heterozygosity")
+#print(mean(observed_heterozygosities))
+```
