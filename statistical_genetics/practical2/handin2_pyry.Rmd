@@ -62,9 +62,8 @@ p <- ncol(df_mono)
 # Create a matrix to store genotype counts
 genotype_counts_all <- matrix(0, nrow = p, ncol = 3)
 
-# Loop through each SNP marker
 for (i in 1:p) {
-  # Count the occurrences of each genotype
+  # Compute genotype couns
   genotype_counts_all[i, 1] <- sum(df_mono[, i] == 0)  # Homozygous for allele 1 AA
   genotype_counts_all[i, 2] <- sum(df_mono[, i] == 1)  # Homozygous for allele 2 AB
   genotype_counts_all[i, 3] <- sum(df_mono[, i] == 2)  # Heterozygous BB
@@ -107,7 +106,7 @@ cat("\nGenotype counts:\nAA:", genotype_counts[1], "\nAB:", genotype_counts[2], 
 observed_frequencies <- genotype_counts / nrow(df_mono)
 
 p <- ((2*genotype_counts[1])+(genotype_counts[2]))/(2*nrow(df_mono)) # observed allele frequency for A
-q <- 1 - obs_a_freq # observed allele frequency for B
+q <- 1 - p # observed allele frequency for B
 
 # Expected genotype frequencies under HWE:
 exp_AA_freq <- p^2
@@ -123,3 +122,34 @@ cat("\nHWE expected AA freqeuncy:", exp_AA_freq, "vs. observed frequency:", obse
 For bi-allelic markers, the expected genotype frequencies under HWE are defined as $f(AA)=p^2$, $f(AB)=2pq$ and $f(BB)=q^2$ where $f(A)=p$ (frequency of allele $A$) and $f(B)=q$ (frequency of allele $B$).
 
 If we calculate the expected genotype frequencies under HWE (as done above) and compare with observed, we see that this variant is unusual (w.r.t. HWE) in that the frequency of heterozygous alleles is $0$, which we would, in accordance with HWE, expect to be $0.49$, explaining how this variant violates the HWE significantly.
+
+# 7. Compute the inbreeding coefficient (f) for each SNP, and make a histogram of f. You can use function HWf for this purpose. Give descriptive statistics (mean, standard deviation, etc) of f calculated over the set of SNPs. What distribution do you expect f to follow theoretically? Use a probability plot to confirm your idea.
+
+```{r}
+inbreeding_factor <- function(genotype_sequence) {
+  genotype_counts <- c(
+    AA=sum(genotype_sequence==0),
+    AB=sum(genotype_sequence==1),
+    BB=sum(genotype_sequence==2)
+  )
+  return(HWf(genotype_counts))
+}
+
+inbreeding_coeffs <- apply(df_mono, 2, inbreeding_factor)
+hist(inbreeding_coeffs, main="Distribution of Inbreeding Coefficients for each SNP in the database", xlab="Inbreeding Coefficient")
+```
+
+```{r}
+# Compute descriptive statistics
+print(summary(inbreeding_coeffs))
+cat("\nStandard Deviation: ", std <- sd(inbreeding_coeffs))
+```
+Theoretically, the distribution of inbreeding coefficients is expected to follow a normal distribution. This is because, under HWE, the genotype frequencies stabilise
+```{r}
+# Create probability plot with assumption of a normal distribution (qnorm)
+sorted_f <- sort(inbreeding_coeffs)
+empirical_prob <- seq(1, length(sorted_f)) / length(sorted_f)
+qqplot(sorted_f, qnorm(empirical_prob), main = "Probability Plot", xlab = "Theoretical Quantiles", ylab = "Observed Values")
+abline(0, 1, col = "red")  # Adds a 45-degree reference line for normal distribution
+plot(fitted_model)
+```
