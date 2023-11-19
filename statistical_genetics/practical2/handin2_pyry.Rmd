@@ -1,0 +1,57 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library(HardyWeinberg)
+library(data.table)
+genotype_data = fread("./TSIChr22v4.raw")
+df <- data.frame(genotype_data)
+df <- df[, (7:ncol(df))]; head(df)
+```
+
+# 1. How many variants are there in this database? What percentage of the data is missing?
+```{r}
+n_variants = ncol(df)
+cat("Number of variants in the dataset:", n_variants)
+
+# Convert non-0, 1, or 2 values to NA
+df[!sapply(df, function(x) x %in% c(0, 1, 2))] <- NA
+
+n_missing = sum(is.na(df))
+total_data_points = ncol(df) * nrow(df)
+perc_missing = (n_missing / total_data_points)*100
+cat("\nPercentages missing data:", perc_missing)
+```
+# 2. Calculate the percentage of monomorphic variants. Exclude all monomorphics from the database for all posterior computations of the practical. How many variants do remain in your database?
+```{r}
+monomorphic <- sapply(df, function(x) length(unique(na.omit(x))) == 1)
+cat("Percentage of monomorphic variants:", (sum(monomorphic)/n_variants)*100, "%\n")
+df_mono <- df[, !monomorphic]
+cat(ncol(df_mono), "variants remain in the database")
+```
+
+# 3. Extract polymorphism rs587756191 T from the data, and determine its genotype counts. Apply a chi-square test for Hardy-Weinberg equilibrium, with and without continuity correction. Also try an exact test, and a permutation test. You can use thee functions HWChisq, HWExact and HWPerm for this purpose. Do you think this variant is in equilibrium?
+
+```{r}
+specific_variant <- df_mono[,"rs587756191_T"]
+genotype_counts <- c(
+  AA=sum(specific_variant==0),
+  AB=sum(specific_variant==1),
+  BB=sum(specific_variant==2)
+)
+
+# Chi-square test without continuity correction
+hw_chisq <- HWChisq(genotype_counts, cc=0)
+
+# Chi-square test with continuity correction
+hw_chisq_corrected <- HWChisq(genotype_counts)
+
+# Exact test for Hardy-Weinberg Equilibrium
+hw_exact <- HWExact(genotype_counts)
+
+# Permutation test for Hardy-Weinberg Equilibrium
+hw_perm <- HWPerm(genotype_counts)
+
+```
