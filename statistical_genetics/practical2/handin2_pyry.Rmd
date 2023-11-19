@@ -60,32 +60,66 @@ hw_perm <- HWPerm(genotype_counts, nperm = 10000, verbose = TRUE)
 p <- ncol(df_mono)
 
 # Create a matrix to store genotype counts
-genotype_counts <- matrix(0, nrow = p, ncol = 3)
+genotype_counts_all <- matrix(0, nrow = p, ncol = 3)
 
 # Loop through each SNP marker
 for (i in 1:p) {
   # Count the occurrences of each genotype
-  genotype_counts[i, 1] <- sum(df_mono[, i] == 0)  # Homozygous for allele 1 AA
-  genotype_counts[i, 2] <- sum(df_mono[, i] == 1)  # Homozygous for allele 2 AB
-  genotype_counts[i, 3] <- sum(df_mono[, i] == 2)  # Heterozygous BB
+  genotype_counts_all[i, 1] <- sum(df_mono[, i] == 0)  # Homozygous for allele 1 AA
+  genotype_counts_all[i, 2] <- sum(df_mono[, i] == 1)  # Homozygous for allele 2 AB
+  genotype_counts_all[i, 3] <- sum(df_mono[, i] == 2)  # Heterozygous BB
 }
 
-print(genotype_counts)
-
-### NOT USED IF THE ABOVE WORKS
-# Get genotype counts for each variant 
-#genotype_counts <- c(
-#  AA=sum(specific_variant==0),
-#  AB=sum(specific_variant==1),
-#  BB=sum(specific_variant==2)
-#)
-#genotype_counts
-
-# Stores the total genotype counts across the whole database
-#gentype_counts <- table(unlist(df_mono[, -1]))
+print(genotype_counts_all)
 ```
 
 # 5. Apply an exact test for Hardy-Weinberg equilibrium to each SNP. You can use function HWExactStats for fast computation. What is the percentage of significant SNPs (use α = 0.05)? Is this the number of markers that you would expect to be out of equilibrium by the effect of chance alone?
 ```{r}
+# compute exact test for each variant
+alpha <- 0.05
+hw_exact_all <- HWExactStats(genotype_counts_all)
 
+# Calculate percentage of variants that are significant with alpha = 0.05
+count_below_005 <- sum(hw_exact_all < alpha)
+perc_below_005 <- (count_below_005 / length(hw_exact_all)) * 100
+cat("Percentage of significant SNPs:", perc_below_005, "%\n")
 ```
+We find that when using Fisher's exact test to test for HWE, the percentage of significant SNPs is 2.77%, and thus for these variants we will reject the null hypothesis that they are in HWE with a significance level of $0.05$. This is the proportion of the variants we would expect to deviate from HWE due to pure chance alone. So if we investigate for HWE with a significance level of $0.05$, we would want the percentage of significant variants to be below $0.05$, thus indicating that there are other factors influencing the deviations from the HWE in the variants.
+
+
+# 6. Which SNP is most significant according to the exact test results? Give its genotype counts. In which sense is this genotypic composition unusual?
+```{r}
+min_idx <- which.min(hw_exact_all)
+most_significant_variant_name <- names(df_mono)[min_idx]
+cat("Most significant variant is:",most_significant_variant_name, "with a p-value of ", min(hw_exact_all))
+
+most_significant_variant_values <- df_mono[,most_significant_variant_name] 
+
+# Get genotype counts
+genotype_counts <- c(
+  sum(most_significant_variant_values==0),
+  sum(most_significant_variant_values==1),
+  sum(most_significant_variant_values==2)
+)
+
+cat("\nGenotype counts:\nAA:", genotype_counts[1], "\nAB:", genotype_counts[2], "\nBB:", genotype_counts[3])
+
+observed_frequencies <- genotype_counts / nrow(df_mono)
+
+p <- ((2*genotype_counts[1])+(genotype_counts[2]))/(2*nrow(df_mono)) # observed allele frequency for A
+q <- 1 - obs_a_freq # observed allele frequency for B
+
+# Expected genotype frequencies under HWE:
+exp_AA_freq <- p^2
+exp_AB_freq <- 2*p*q
+exp_BB_freq <- q^2
+
+
+cat("\nHWE expected AA freqeuncy:", exp_AA_freq, "vs. observed frequency:", observed_frequencies[1],
+    "\nHWE expected AB frequency: ", exp_AB_freq, "vs. observed frequency:", observed_frequencies[2],
+    "\nHWE expected BB frequency: ", exp_BB_freq, "vs. observed frequency:", observed_frequencies[3]
+    )
+```
+For bi-allelic markers, the expected genotype frequencies under HWE are defined as $f(AA)=p^2$, $f(AB)=2pq$ and $f(BB)=q^2$ where $f(A)=p$ (frequency of allele $A$) and $f(B)=q$ (frequency of allele $B$).
+
+If we calculate the expected genotype frequencies under HWE (as done above) and compare with observed, we see that this variant is unusual (w.r.t. HWE) in that the frequency of heterozygous alleles is $0$, which we would, in accordance with HWE, expect to be $0.49$, explaining how this variant violates the HWE significantly.
