@@ -18,7 +18,7 @@ allele_counts <- c()
 for (i in seq(1, ncol(NistSTRs), by = 2)) {
   
   str_data <- c(NistSTRs[, i], NistSTRs[, i + 1])
- 
+  
   unique_alleles <- length(unique(str_data))
   
   allele_counts <- c(allele_counts, unique_alleles)
@@ -61,7 +61,7 @@ for (i in seq(1, ncol(NistSTRs), by=2)) {
 print("Average expected heterozygosity")
 print(mean(expected_heterozygosities))
 
-hist(expected_heterozygosities, main = "Expected Heterozygosity Histogram", xlab = "Expected Heterozygosity", xlim=c(0,1))
+hist(expected_heterozygosities, main = "Expected Heterozygosity Histogram", xlab = "Expected Heterozygosity")
 ```
 
 ```{r}
@@ -78,13 +78,12 @@ for (i in seq(1, ncol(NistSTRs), by=2)) {
   observed_heterozygosities <- c(observed_heterozygosities, obs_het)
 }
 
-alpha <- 70
-c1 <- rgb(0,0,255,max = 255, alpha = alpha)
+alpha <- 80
+c1 <- rgb(255,0,0,max = 255, alpha = alpha)
 c2 <- rgb(0,255,0,max = 255, alpha = alpha)
-hist(observed_heterozygosities, col = c1, xlim=c(0,1), main="Observed vs. Expected Heterozygosities for all STRs")
-hist(expected_heterozygosities, add = TRUE, col = c2, xlim=c(0,1))
-legend("topright", legend = c("Observed", "Expected"), 
-       fill = c(c1, c2), border = "white")
+hist(observed_heterozygosities, col = c1, main="Observed vs. Expected Heterozygosities for all STRs")
+hist(expected_heterozygosities, add = TRUE, col = c2)
+legend("topright", legend = c("Observed", "Expected"), fill = c(c1, c2), border = "white")
 
 #print("Average observed heterozygosity")
 #print(mean(observed_heterozygosities))
