@@ -55,6 +55,8 @@ hw_exact <- HWExact(genotype_counts, verbose = TRUE)
 hw_perm <- HWPerm(genotype_counts, nperm = 10000, verbose = TRUE)
 
 ```
+The chi-square test without continuity correction and the exact and permutation tests suggest that the variant rs587756191_T is in Hardy-Weinberg equilibrium. The chi-square test with continuity correction indicates a deviation, but this result may not be reliable due to the low genotype counts warning. Overall, considering the consistency of the other three tests, it seems likely that this variant is in Hardy-Weinberg equilibrium.
+
 # 4. Determine the genotype counts for all polymorphic variants, and store them in a p × 3 matrix.
 ```{r}
 p <- ncol(df_mono)
@@ -69,7 +71,6 @@ for (i in 1:p) {
   genotype_counts_all[i, 3] <- sum(df_mono[, i] == 2)  # Heterozygous BB
 }
 
-print(genotype_counts_all)
 ```
 
 # 5. Apply an exact test for Hardy-Weinberg equilibrium to each SNP. You can use function HWExactStats for fast computation. What is the percentage of significant SNPs (use α = 0.05)? Is this the number of markers that you would expect to be out of equilibrium by the effect of chance alone?
@@ -153,3 +154,22 @@ qqplot(sorted_f, qnorm(empirical_prob), main = "Probability Plot", xlab = "Theor
 abline(0, 1, col = "red")  # Adds a 45-degree reference line for normal distribution
 plot(fitted_model)
 ```
+
+# 8. Apply the exact test for HWE to each SNP, using different significant levels. Report the number and percentage of significant variants using an exac test for HWE with α = 0.10, 0.05, 0.01 and 0.001. State your conclusions.
+```{r}
+hw_exact_all <- HWExactStats(genotype_counts_all)
+
+alpha_levels <- c(0.10, 0.05, 0.01, 0.001)
+results <- sapply(alpha_levels, function(alpha) {
+  significant_count <- sum(hw_exact_all < alpha)
+  percent_significant <- (significant_count / length(hw_exact_all)) * 100
+  return(c(count = significant_count, percent = percent_significant))
+})
+
+
+results_df <- as.data.frame(t(results))
+colnames(results_df) <- c("Count", "Percentage")
+rownames(results_df) <- paste("Alpha =", alpha_levels)
+results_df
+```
+The results indicate that as the alpha level becomes more stringent, the number and percentage of SNPs showing significant deviation from HWE decrease. This pattern is expected in large datasets where some SNPs may deviate from HWE due to chance, population structure, selection, or other factors. The relatively low percentages at stricter alpha levels suggest that most SNPs in your dataset are in Hardy-Weinberg equilibrium.
