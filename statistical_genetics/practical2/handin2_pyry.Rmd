@@ -52,7 +52,7 @@ hw_chisq_corrected <- HWChisq(genotype_counts, cc = 0.5, verbose = TRUE, x.linke
 hw_exact <- HWExact(genotype_counts, verbose = TRUE, x.linked = FALSE)
 
 # Permutation test for Hardy-Weinberg Equilibrium
-hw_perm <- HWPerm(genotype_counts, nperm = 10000, verbose = TRUE, x.linked = FALSE) # uses chi-squared by default
+hw_perm <- HWPerm(genotype_counts, verbose = TRUE, x.linked = FALSE) # uses chi-squared by default
 ```
 The chi-square test without continuity correction and the exact and permutation tests suggest that the variant rs587756191_T is in Hardy-Weinberg equilibrium. The chi-square test with continuity correction indicates a deviation and that the variant is not in equilibrium, so this result may not be reliable due to the low genotype counts for AB and BB. Overall, considering the consistency of the other three tests, it seems likely that this variant is in Hardy-Weinberg equilibrium.
 
