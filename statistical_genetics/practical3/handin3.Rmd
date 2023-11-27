@@ -12,6 +12,7 @@ output:
 library(genetics)
 library(data.table)
 library(HardyWeinberg)
+library(haplo.stats)
 ```
 
 ```{r}
@@ -24,19 +25,19 @@ cat("Number of individuals:", num_individuals)
 num_SNPs <- ncol(genotype_data)
 cat("\nNumbre of SNPs:", num_SNPs)
 
-n_missing = sum(is.na(genotype_data))
-total_data_points = num_individuals * num_SNPs
-perc_missing = (n_missing / total_data_points)*100
+n_missing <- sum(is.na(genotype_data))
+total_data_points <- num_individuals * num_SNPs
+perc_missing <- (n_missing / total_data_points)*100
 cat("\nPercentages missing data:", perc_missing, "%")
 ```
 
 # Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
 ```{r}
-snp1 = genotype_data[,"rs34684677"]
-snp2 = genotype_data[,"rs2894715"]
-g1 = genotype(snp1)
-g2 = genotype(snp2)
-stats = LD(g1,g2); stats
+snp1 <- genotype_data[,"rs34684677"]
+snp2 <- genotype_data[,"rs2894715"]
+g1 <- genotype(snp1)
+g2 <- genotype(snp2)
+stats <- LD(g1,g2); stats
 D = stats$D
 ```
 D = -0.055 might suggest a weak negative association meaning that the alleles at the two loci tend to be inherited independently more often than expected by chance. Repulsion! The low p-value suggest that theres a significant difference from what we would expect under the null hypothesis of random assortment.
@@ -69,14 +70,14 @@ allele_frequencies2 <- prop.table(allele_counts2)
 cat("\nCounts for rs2894715 (G, T):", allele_counts2)
 cat("\nFrequencies for rs2894715  (G, T):", allele_frequencies2)
 
-haplo1_GT_freq = (allele_frequencies1[1]*allele_frequencies1[2]) + D
-haplo2_GT_freq = (allele_frequencies2[1]*allele_frequencies2[2]) + D
+haplo1_GT_freq <- (allele_frequencies1[1]*allele_frequencies1[2]) + D
+haplo2_GT_freq <- (allele_frequencies2[1]*allele_frequencies2[2]) + D
 
-haplo1_GG_freq = (allele_frequencies1[1]*allele_frequencies1[1]) + D
-haplo2_GG_freq = (allele_frequencies2[1]*allele_frequencies2[1]) + D
+haplo1_GG_freq <- (allele_frequencies1[1]*allele_frequencies1[1]) + D
+haplo2_GG_freq <- (allele_frequencies2[1]*allele_frequencies2[1]) + D
 
-haplo1_TT_freq = (allele_frequencies1[2]*allele_frequencies1[2]) + D
-haplo2_TT_freq = (allele_frequencies2[2]*allele_frequencies2[2]) + D
+haplo1_TT_freq <- (allele_frequencies1[2]*allele_frequencies1[2]) + D
+haplo2_TT_freq <- (allele_frequencies2[2]*allele_frequencies2[2]) + D
 
 cat("\n\nHaplotype frequency p_GG for rs34684677:", haplo1_GG_freq)
 cat("\nHaplotype frequency p_GT for rs34684677:", haplo1_GT_freq)
@@ -100,4 +101,60 @@ genotype_counts <- c(
   AA=sum(specific_variant=="A/A"),
 )
 })
+```
+
+# 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
+```{r}
+calc_LD <- function(snp1, snp2) {
+  # Calculate LD for two SNPs
+  g1 <- genotype(snp1)
+  g2 <- genotype(snp2)
+  stats <- LD(g1, g2)
+  return(stats$D)
+}
+
+# Create an empty matrix to store LD values
+ld_matrix <- matrix(NA, nrow = num_SNPs, ncol = num_SNPs)
+
+# Loop through all marker pairs and calculate LD
+for (i in 2:(num_SNPs - 1)) {
+  for (j in (i + 1):num_SNPs) {
+    snp1 <- genotype_data[, i]
+    snp2 <- genotype_data[, j]
+    
+    ld_matrix[i, j] <- calc_LD(snp1, snp2) # calc LD
+    ld_matrix[j, i] <- ld_matrix[i, j]  # the matrix is symmetric
+  }
+}
+```
+
+# Haplotype estimation
+## 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+
+```{r}
+apoe_data_all <- read.table("APOE/APOE.dat", header=TRUE)
+apoe_data <- apoe_data[, (2:ncol(apoe_data))] # filter out first ID column
+```
+
+```{r}
+n_apoe_individuals <- nrow(apoe_data)
+cat("Number of individuals:", n_apoe_individuals)
+num_SNPs_apoe <- ncol(apoe_data)
+cat("\nNumbre of SNPs:", num_SNPs_apoe)
+
+n_missing <- sum(is.na(apoe_data))
+total_data_points <- n_apoe_individuals * num_SNPs_apoe
+perc_missing_apoe  <- (n_missing / total_data_points) * 100
+cat("\nPercentages missing data:", perc_missing_apoe, "%")
+```
+
+## 2. Assuming that all SNPs are bi-allelic, how many haplotypes can theoretically be found for this data set?
+
+Given the fact that each SNP is bi-allic, there are 2 alleles per SNP. This means that there are 2^n haplotypes, where n is the number of SNPs. So there are 2^2 = 4 theoretical haplotypes.
+
+## 3. Estimate haplotype frequencies using the haplo.em function that you will find in the haplo.stats package. How many haplotypes do you find? List the estimated probabilities in decreasing order. Which haplotype number is the most common?
+
+```{r}
+locus_labels <- list(colnames(apoe_data))
+haplo.em(apoe_data, locus.label=locus_labels)
 ```
