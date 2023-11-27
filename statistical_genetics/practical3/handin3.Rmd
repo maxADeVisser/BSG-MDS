@@ -13,6 +13,9 @@ library(genetics)
 library(data.table)
 library(HardyWeinberg)
 library(haplo.stats)
+library(dplyr)
+#install.packages("tidyr")
+library(tidyr)
 ```
 
 ```{r}
@@ -150,11 +153,28 @@ cat("\nPercentages missing data:", perc_missing_apoe, "%")
 
 ## 2. Assuming that all SNPs are bi-allelic, how many haplotypes can theoretically be found for this data set?
 
-Given the fact that each SNP is bi-allic, there are 2 alleles per SNP. This means that there are 2^n haplotypes, where n is the number of SNPs. So there are 2^2 = 4 theoretical haplotypes.
+Given the fact that each SNP is bi-allic, there are 2 alleles per SNP. This means that there are 2^n haplotypes, where n is the number of SNPs. So here we have 2^4 = 16 theoretical haplotypes.
 
 ## 3. Estimate haplotype frequencies using the haplo.em function that you will find in the haplo.stats package. How many haplotypes do you find? List the estimated probabilities in decreasing order. Which haplotype number is the most common?
 
 ```{r}
-locus_labels <- list(colnames(apoe_data))
-haplo.em(apoe_data, locus.label=locus_labels)
+geno_matrix <- matrix(NA, nrow = n_apoe_individuals, ncol = num_SNPs_apoe*2)
+
+# Function to apply the separation to each column
+
+current_col <- "rs569874826"
+seperated_apoe_data <- copy(apoe_data)
+
+seperate_col <- function(col){
+  separate(seperated_apoe_data, col, into = c(sprintf("%d_%s", 1, col), sprintf("%d_%s", 2, col)), sep = "/")
+}
+
+for (col_name in colnames(apoe_data)) {
+  seperated_apoe_data <- seperate_col(col_name)
+}
+```
+
+```{r}
+#locus_labels <- list(colnames(seperated_apoe_data))
+haplo.em(geno=seperated_apoe_data)
 ```
