@@ -1,0 +1,103 @@
+---
+title: "BSG-MDS practical 2 Statistical Genetics"
+author: 
+  - Pyry Satama
+  - Max de Visser
+subtitle: "14/11/2023, submission deadline 21/11/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library(genetics)
+library(data.table)
+library(HardyWeinberg)
+```
+
+```{r}
+genotype_data = read.table("FOXP2/FOXP2.dat", header = TRUE)
+```
+# How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+```{r}
+num_individuals <- nrow(genotype_data)
+cat("Number of individuals:", num_individuals)
+num_SNPs <- ncol(genotype_data)
+cat("\nNumbre of SNPs:", num_SNPs)
+
+n_missing = sum(is.na(genotype_data))
+total_data_points = num_individuals * num_SNPs
+perc_missing = (n_missing / total_data_points)*100
+cat("\nPercentages missing data:", perc_missing, "%")
+```
+
+# Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
+```{r}
+snp1 = genotype_data[,"rs34684677"]
+snp2 = genotype_data[,"rs2894715"]
+g1 = genotype(snp1)
+g2 = genotype(snp2)
+stats = LD(g1,g2); stats
+D = stats$D
+```
+D = -0.055 might suggest a weak negative association meaning that the alleles at the two loci tend to be inherited independently more often than expected by chance. Repulsion! The low p-value suggest that theres a significant difference from what we would expect under the null hypothesis of random assortment.
+
+# Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
+```{r}
+# Separate Genotypes
+alleles1 <- unlist(strsplit(snp1, "/"))
+
+# Count Alleles
+allele_counts1 <- table(alleles1)
+
+# Calculate Frequencies
+allele_frequencies1 <- prop.table(allele_counts1)
+
+# Print the results
+cat("Counts for rs34684677  (G, T):", allele_counts1)
+cat("\nFrequencies for rs34684677  (G, T):", allele_frequencies1)
+
+# Separate Genotypes
+alleles2 <- unlist(strsplit(snp2, "/"))
+
+# Count Alleles
+allele_counts2 <- table(alleles2)
+
+# Calculate Frequencies
+allele_frequencies2 <- prop.table(allele_counts2)
+
+# Print the results
+cat("\nCounts for rs2894715 (G, T):", allele_counts2)
+cat("\nFrequencies for rs2894715  (G, T):", allele_frequencies2)
+
+haplo1_GT_freq = (allele_frequencies1[1]*allele_frequencies1[2]) + D
+haplo2_GT_freq = (allele_frequencies2[1]*allele_frequencies2[2]) + D
+
+haplo1_GG_freq = (allele_frequencies1[1]*allele_frequencies1[1]) + D
+haplo2_GG_freq = (allele_frequencies2[1]*allele_frequencies2[1]) + D
+
+haplo1_TT_freq = (allele_frequencies1[2]*allele_frequencies1[2]) + D
+haplo2_TT_freq = (allele_frequencies2[2]*allele_frequencies2[2]) + D
+
+cat("\n\nHaplotype frequency p_GG for rs34684677:", haplo1_GG_freq)
+cat("\nHaplotype frequency p_GT for rs34684677:", haplo1_GT_freq)
+cat("\nHaplotype frequency p_TT for rs34684677:", haplo1_TT_freq)
+
+cat("\n\nHaplotype frequency p_GG for rs2894715:", haplo2_GG_freq)
+cat("\nHaplotype frequency p_GT for rs2894715:", haplo2_GT_freq)
+cat("\nHaplotype frequency p_TT for rs2894715:", haplo2_TT_freq)
+```
+For rs34684677 the highest inferred frequency is for haplotype GG. For rs2894715 the highest inferred frequency is for haplotype TT. Overall haplotype GG for rs34684677 has the highest frequency.
+
+# Determine the genotype counts for each SNP. For how many variants do you reject Hardy-Weinberg equilibrium using an ordinary chi-square test without continuity correction? Is this what you would expect by chance?
+```{r}
+bim_data = read.table("FOXP2/FOXP2.bim")
+apply(genotype_data, 2, FUN=function(x) {
+specific_variant <- x
+genotype_counts <- c(
+  TT=sum(specific_variant=="T/T"),
+  GG=sum(specific_variant=="G/G"),
+  CC=sum(specific_variant=="C/C"),
+  AA=sum(specific_variant=="A/A"),
+)
+})
+```
