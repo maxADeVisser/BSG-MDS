@@ -16,6 +16,8 @@ library(haplo.stats)
 library(dplyr)
 #install.packages("tidyr")
 library(tidyr)
+#install.packages("viridis")
+library(viridis)
 ```
 
 ```{r}
@@ -154,8 +156,13 @@ for (i in 1:(num_snps-1)) {
   }
 }
 
+```
+
+```{r}
+color_resolution <- 15
+my_palette <- viridis(color_resolution) # color pallette
 # Creating an LD heatmap
-image(1:num_snps, 1:num_snps, R_squared_matrix, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=rainbow(10))
+image(1:num_snps, 1:num_snps, R_squared_matrix, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=my_palette)
 ```
 
 ## 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
@@ -173,22 +180,30 @@ filtered_snp <- genotype_data %>%
 
 # Initialize a matrix to store R squared values
 num_snps <- ncol(filtered_snp)
-R_squared_matrix <- matrix(NA, nrow = num_snps, ncol = num_snps)
+R_squared_matrix_filtered <- matrix(NA, nrow = num_snps, ncol = num_snps)
 
 # Loop over each pair of SNPs and calculate R squared
 for (i in 1:(num_snps-1)) {
   for (j in (i+1):num_snps) {
     snp1 <- filtered_snp[, i]
     snp2 <- filtered_snp[, j]
-    R_squared_matrix[i, j] <- calc_R_squared(snp1, snp2)
-    R_squared_matrix[j, i] <- R_squared_matrix[i, j] # LD is symmetric
+    R_squared_matrix_filtered[i, j] <- calc_R_squared(snp1, snp2)
+    R_squared_matrix_filtered[j, i] <- R_squared_matrix_filtered[i, j] # LD is symmetric
   }
 }
 
 # Creating an LD heatmap
-image(1:num_snps, 1:num_snps, R_squared_matrix, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=rainbow(10))
+image(1:num_snps, 1:num_snps, R_squared_matrix_filtered, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=my_palette)
 
 ```
+
+OBS.: there is no color scale attached to the heatmap, but roughly the colorscale is as such: 
+- yellow: high r^2
+- green: not as high as yellow, but still high
+- cyan: a lower than green
+- dark purple: the lowest r^2 values
+
+When filtering out SNPs with a MAF below 0.35, it seems that the ratio of SNPs with a higher correlation coefficient is higher in comparison to when you do not (as in the first plot).
 
 # Haplotype estimation
 ## 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
