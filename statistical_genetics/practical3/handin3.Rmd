@@ -203,7 +203,7 @@ OBS.: there is no color scale attached to the heatmap, but roughly the colorscal
 - cyan: a lower than green
 - dark purple: the lowest r^2 values
 
-When filtering out SNPs with a MAF below 0.35, it seems that the ratio of SNPs with a higher correlation coefficient is higher in comparison to when you do not (as in the first plot).
+When filtering out SNPs with a MAF below 0.35, it seems that the ratio of SNPs with a higher correlation coefficient is higher in comparison to when you do not (as in the first plot). This should make sense as well since we are filtering out alleles that occur the least frequent, and as such, we should increase the probability of finding hablotypes with higher correlation coefficients.
 
 # Haplotype estimation
 ## 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
@@ -246,7 +246,6 @@ most_common_haplotype <- which.max(haplo_freqs$hfreq)
 
 most_common_haplotype
 ```
-
 # 4. Remove all genetic variants that have a minor allele frequency below 0.10 from the database, and re-run haplo.em. How does this affect the number of haplotypes? Comment on your results.
 ```{r}
 filtered_genotype_data <- apoe_data[, sapply(apoe_data, function(snp) {
