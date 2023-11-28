@@ -19,13 +19,14 @@ library(tidyr)
 ```
 
 ```{r}
-genotype_data = read.table("FOXP2/FOXP2.dat", header = TRUE)
+genotype_data <- read.table("FOXP2/FOXP2.dat", header = TRUE)
+num_individuals <- nrow(genotype_data)
+num_SNPs <- ncol(genotype_data)
+genotype_data <- genotype_data[, (2:num_SNPs)]; head(genotype_data) # filter out the ID column
 ```
 # How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
 ```{r}
-num_individuals <- nrow(genotype_data)
 cat("Number of individuals:", num_individuals)
-num_SNPs <- ncol(genotype_data)
 cat("\nNumbre of SNPs:", num_SNPs)
 
 n_missing <- sum(is.na(genotype_data))
@@ -43,9 +44,11 @@ g2 <- genotype(snp2)
 stats <- LD(g1,g2); stats
 D = stats$D
 ```
-D = -0.055 might suggest a weak negative association meaning that the alleles at the two loci tend to be inherited independently more often than expected by chance. Repulsion! The low p-value suggest that theres a significant difference from what we would expect under the null hypothesis of random assortment.
+$D = -0.055$ suggest only a weak negative association (repulsion) between the alleles of the two markers, meaning that the alleles at the two loci tend to be inherited independently only sightly more often than expected by pure chance. So, we would say that there is no strong association between the alleles of the two markers. However, the very low p-value of $5.77645e-06$ suggest that the association found is very significant and that there is strong evidence for this outcome being the case, and as such, the null hypothesis of complete random assortment between the alleles of the two markers is rejected.
 
 # Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
+
+We can infer the expected haplotype frequencies using the formula $p_{AB} = p_Ap_B+D$
 ```{r}
 # Separate Genotypes
 alleles1 <- unlist(strsplit(snp1, "/"))
@@ -108,7 +111,7 @@ genotype_counts <- c(
 
 # 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
 ```{r}
-calc_LD <- function(snp1, snp2) {
+calc_D <- function(snp1, snp2) {
   # Calculate LD for two SNPs
   g1 <- genotype(snp1)
   g2 <- genotype(snp2)
@@ -116,19 +119,49 @@ calc_LD <- function(snp1, snp2) {
   return(stats$D)
 }
 
-# Create an empty matrix to store LD values
-ld_matrix <- matrix(NA, nrow = num_SNPs, ncol = num_SNPs)
-
-# Loop through all marker pairs and calculate LD
-for (i in 2:(num_SNPs - 1)) {
-  for (j in (i + 1):num_SNPs) {
-    snp1 <- genotype_data[, i]
-    snp2 <- genotype_data[, j]
+# Loop over each column pair
+# Using combn to generate all unique combinations of column indices
+col_combinations <- combn(ncol(genotype_data), 2)
+D_values <- list() # to store D_values
+R_squared_values <- list() # to store R^2 values
+for (i in 1:ncol(col_combinations)) {
+  comb <- col_combinations[,i] # current combination
+  snp1_idx <- comb[1]
+  snp1 <- genotype_data[, snp1_idx]
     
-    ld_matrix[i, j] <- calc_LD(snp1, snp2) # calc LD
-    ld_matrix[j, i] <- ld_matrix[i, j]  # the matrix is symmetric
-  }
+  snp2_idx <- comb[2]
+  snp2 <- genotype_data[, snp2_idx]
+  
+  D <- calc_D(genotype(snp1), genotype(snp2))
+  D_values <- c(D_values, c(D)) # append to the D_values list
+  
+  # Compute R^2 values
+  alleles1 <- unlist(strsplit(snp1, "/"))
+  allele_counts1 <- table(alleles1) # Count Alleles
+  allele_frequencies1 <- prop.table(allele_counts1) # Calculate Frequencies
+  
+  alleles2 <- unlist(strsplit(snp2, "/"))
+  allele_counts2 <- table(alleles2) # Count Alleles
+  allele_frequencies2 <- prop.table(allele_counts2) # Calculate Frequencies
 }
+
+```
+Use the equation $R^2=\frac{D^2}{p_A p_B p_a p_b}$ to extract $R^2$ values. (OBS.: the above code never stopped running, so we just left here what we would have done if we had all the D statistics for each unique pair of SNPs)
+```{r}
+# Extract the R^2 correlation coefficient from the calculated D-statistics
+
+```
+# 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
+```{r}
+# filter out SNPs with MAF below 0.35
+specific_variant <- df_mono[,"rs8138488_C"] # Replace with the correct column name
+genotype_counts <- table(specific_variant)
+minor_allele_count <- min(genotype_counts)
+maf <- minor_allele_count / sum(genotype_counts)
+cat("Genotype counts: ") 
+genotype_counts
+cat("Minor allele count: ", minor_allele_count)
+cat("\nMAF", maf)
 ```
 
 # Haplotype estimation
