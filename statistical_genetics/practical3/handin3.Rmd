@@ -131,54 +131,32 @@ expected_rejections <- 0.05 * (ncol(genotype_data) - 1); expected_rejections
 
 ## 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
 ```{r}
-calc_D <- function(snp1, snp2) {
-  # Calculate LD for two SNPs
+# Function to calculate R squared
+calc_R_squared <- function(snp1, snp2) {
   g1 <- genotype(snp1)
   g2 <- genotype(snp2)
   stats <- LD(g1, g2)
-  return(stats$D)
+  return(stats$`R^2`)
 }
 
-# Loop over each column pair
-# Using combn to generate all unique combinations of column indices
-col_combinations <- combn(ncol(genotype_data), 2)
-D_values <- list() # to store D_values
-R_squared_values <- list() # to store R^2 values
-for (i in 1:ncol(col_combinations)) {
-  comb <- col_combinations[,i] # current combination
-  snp1_idx <- comb[1]
-  snp1 <- genotype_data[, snp1_idx]
-    
-  snp2_idx <- comb[2]
-  snp2 <- genotype_data[, snp2_idx]
-  
-  D <- calc_D(genotype(snp1), genotype(snp2))
-  D_values <- c(D_values, c(D)) # append to the D_values list
+# Initialize a matrix to store R squared values
+num_snps <- ncol(genotype_data)
+R_squared_matrix <- matrix(NA, nrow = num_snps, ncol = num_snps)
+
+# Loop over each pair of SNPs and calculate R squared
+for (i in 1:(num_snps-1)) {
+  for (j in (i+1):num_snps) {
+    snp1 <- genotype_data[, i]
+    snp2 <- genotype_data[, j]
+    R_squared_matrix[i, j] <- calc_R_squared(snp1, snp2)
+    R_squared_matrix[j, i] <- R_squared_matrix[i, j] # LD is symmetric
+  }
 }
 
+# Creating an LD heatmap
+image(1:num_snps, 1:num_snps, R_squared_matrix, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=rainbow(10))
 ```
-Use the equation $R^2=\frac{D^2}{p_A p_B p_a p_b}$ to compute $R^2$ values. (OBS.: the above code never stopped running, and we could not get it to work, so we just left here what we would have done if we had all the D statistics for each unique pair of SNPs)
-```{r}
-# Extract the R^2 correlation coefficient from the calculated D-statistics
-calc_allele_freq <- function(snp) {
-  # function to calculate allele frequency given a SNP marker
-  alleles_snp <- unlist(strsplit(snp, "/"))
-  alleles_counts <- table(alleles_snp)
-  allele_freq <- alleles_counts / length(alleles_snp)
-  return (allele_freq)
-}
 
-calc_R2 <- function(snp1, snp2, D) {
-  # calculate R^2 correlation coefficient given two SNPs
-  pA <- calc_allele_freq(snp1)[1] # frequency of allele 1 in snp 1
-  pB <- calc_allele_freq(snp2)[1] # frequency of allele 1 in snp 1
-  r2 <- D^2 / (pA * (1 - pA) * pB * (1 - pB))
-  return (r2)
-}
-
-example_R2 <- calc_R2(genotype_data$rs34684677, genotype_data$rs1839115, D=0.05)
-cat("Example value of a R^2 coefficient:", example_R2)
-```
 ## 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
 ```{r}
 # filter out SNPs with MAF below 0.35
