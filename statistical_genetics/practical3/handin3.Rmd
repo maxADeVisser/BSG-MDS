@@ -24,7 +24,7 @@ num_individuals <- nrow(genotype_data)
 num_SNPs <- ncol(genotype_data)
 genotype_data <- genotype_data[, (2:num_SNPs)]; head(genotype_data) # filter out the ID column
 ```
-# How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+# 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
 ```{r}
 cat("Number of individuals:", num_individuals)
 cat("\nNumbre of SNPs:", num_SNPs)
@@ -35,7 +35,7 @@ perc_missing <- (n_missing / total_data_points)*100
 cat("\nPercentages missing data:", perc_missing, "%")
 ```
 
-# Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
+# 2. Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
 ```{r}
 snp1 <- genotype_data[,"rs34684677"]
 snp2 <- genotype_data[,"rs2894715"]
@@ -46,7 +46,7 @@ D = stats$D
 ```
 $D = -0.055$ suggest only a weak negative association (repulsion) between the alleles of the two markers, meaning that the alleles at the two loci tend to be inherited independently only sightly more often than expected by pure chance. So, we would say that there is no strong association between the alleles of the two markers. However, the very low p-value of $5.77645e-06$ suggest that the association found is very significant and that there is strong evidence for this outcome being the case, and as such, the null hypothesis of complete random assortment between the alleles of the two markers is rejected.
 
-# Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
+# 3. Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
 
 We can infer the expected haplotype frequencies using the formula $p_{AB} = p_Ap_B+D$
 ```{r}
@@ -95,18 +95,36 @@ cat("\nHaplotype frequency p_TT for rs2894715:", haplo2_TT_freq)
 ```
 For rs34684677 the highest inferred frequency is for haplotype GG. For rs2894715 the highest inferred frequency is for haplotype TT. Overall haplotype GG for rs34684677 has the highest frequency.
 
-# Determine the genotype counts for each SNP. For how many variants do you reject Hardy-Weinberg equilibrium using an ordinary chi-square test without continuity correction? Is this what you would expect by chance?
+# 4. Determine the genotype counts for each SNP. For how many variants do you reject Hardy-Weinberg equilibrium using an ordinary chi-square test without continuity correction? Is this what you would expect by chance?
 ```{r}
-bim_data = read.table("FOXP2/FOXP2.bim")
-apply(genotype_data, 2, FUN=function(x) {
-specific_variant <- x
-genotype_counts <- c(
-  TT=sum(specific_variant=="T/T"),
-  GG=sum(specific_variant=="G/G"),
-  CC=sum(specific_variant=="C/C"),
-  AA=sum(specific_variant=="A/A"),
-)
-})
+# Initialize a counter for SNPs rejecting HWE
+reject_HWE_count <- 0
+
+# Iterate over each SNP column in the genotype data
+for(i in 2:ncol(genotype_data)) {
+  # Remove slashes and get the unique alleles
+  modified_genotypes <- gsub("/", "", genotype_data[,i])
+  unique_alleles <- unique(unlist(strsplit(unique(modified_genotypes), "")))
+  
+  # Generate all possible genotype combinations
+  possible_genotypes <- c(paste(unique_alleles[1], unique_alleles[1], sep=""),
+                          paste(unique_alleles[1], unique_alleles[2], sep=""),
+                          paste(unique_alleles[2], unique_alleles[2], sep=""))
+  # Create a count vector with counts for each genotype
+  counts <- table(factor(modified_genotypes, levels = possible_genotypes))
+
+  # Apply HWChisq test
+  hw_chisq <- suppressWarnings(HWChisq(counts, cc=0, verbose = FALSE, x.linked = FALSE))
+  
+  # Check if HWE is rejected for this SNP
+  if (hw_chisq$pval < 0.05) {
+    reject_HWE_count <- reject_HWE_count + 1
+  }
+}
+
+reject_HWE_count
+# Expected rejections 5% of all SNPs
+expected_rejections <- 0.05 * (ncol(genotype_data) - 1); expected_rejections
 ```
 
 # 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
