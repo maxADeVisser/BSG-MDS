@@ -170,6 +170,24 @@ calc_MAF <- function(genotypes) {
 
 filtered_snp <- genotype_data %>%
   select(where(~ calc_MAF(.) > 0.35))
+
+# Initialize a matrix to store R squared values
+num_snps <- ncol(filtered_snp)
+R_squared_matrix <- matrix(NA, nrow = num_snps, ncol = num_snps)
+
+# Loop over each pair of SNPs and calculate R squared
+for (i in 1:(num_snps-1)) {
+  for (j in (i+1):num_snps) {
+    snp1 <- filtered_snp[, i]
+    snp2 <- filtered_snp[, j]
+    R_squared_matrix[i, j] <- calc_R_squared(snp1, snp2)
+    R_squared_matrix[j, i] <- R_squared_matrix[i, j] # LD is symmetric
+  }
+}
+
+# Creating an LD heatmap
+image(1:num_snps, 1:num_snps, R_squared_matrix, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=rainbow(10))
+
 ```
 
 # Haplotype estimation
