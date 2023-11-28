@@ -128,6 +128,7 @@ reject_HWE_count
 # Expected rejections 5% of all SNPs
 expected_rejections <- 0.05 * (ncol(genotype_data) - 1); expected_rejections
 ```
+210 SNPs reject HWE. Given that the expected number of rejections by chance (5% of all SNPs) is 27.1, the results seem to significantly exceed what you would expect by chance.
 
 ## 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
 ```{r}
