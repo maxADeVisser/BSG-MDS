@@ -152,34 +152,43 @@ for (i in 1:ncol(col_combinations)) {
   
   D <- calc_D(genotype(snp1), genotype(snp2))
   D_values <- c(D_values, c(D)) # append to the D_values list
-  
-  # Compute R^2 values
-  alleles1 <- unlist(strsplit(snp1, "/"))
-  allele_counts1 <- table(alleles1) # Count Alleles
-  allele_frequencies1 <- prop.table(allele_counts1) # Calculate Frequencies
-  
-  alleles2 <- unlist(strsplit(snp2, "/"))
-  allele_counts2 <- table(alleles2) # Count Alleles
-  allele_frequencies2 <- prop.table(allele_counts2) # Calculate Frequencies
 }
 
 ```
-Use the equation $R^2=\frac{D^2}{p_A p_B p_a p_b}$ to extract $R^2$ values. (OBS.: the above code never stopped running, so we just left here what we would have done if we had all the D statistics for each unique pair of SNPs)
+Use the equation $R^2=\frac{D^2}{p_A p_B p_a p_b}$ to compute $R^2$ values. (OBS.: the above code never stopped running, so we just left here what we would have done if we had all the D statistics for each unique pair of SNPs)
 ```{r}
 # Extract the R^2 correlation coefficient from the calculated D-statistics
+calc_allele_freq <- function(snp) {
+  # function to calculate allele frequency given a SNP marker
+  alleles_snp <- unlist(strsplit(snp, "/"))
+  alleles_counts <- table(alleles_snp)
+  allele_freq <- alleles_counts / length(alleles_snp)
+  return (allele_freq)
+}
 
+calc_R2 <- function(snp1, snp2, D) {
+  # calculate R^2 correlation coefficient given two SNPs
+  pA <- calc_allele_freq(snp1)[1] # frequency of allele 1 in snp 1
+  pB <- calc_allele_freq(snp2)[1] # frequency of allele 1 in snp 1
+  r2 <- D^2 / (pA * (1 - pA) * pB * (1 - pB))
+  return (r2)
+}
+calc_R2(genotype_data$rs34684677, genotype_data$rs1839115, D=0.05)
 ```
 # 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
 ```{r}
 # filter out SNPs with MAF below 0.35
-specific_variant <- df_mono[,"rs8138488_C"] # Replace with the correct column name
-genotype_counts <- table(specific_variant)
-minor_allele_count <- min(genotype_counts)
-maf <- minor_allele_count / sum(genotype_counts)
-cat("Genotype counts: ") 
-genotype_counts
-cat("Minor allele count: ", minor_allele_count)
-cat("\nMAF", maf)
+calc_MAF <- function(genotypes) {
+  alleles <- unlist(strsplit(genotypes, "/"))
+  allele_counts <- table(alleles)
+  maf <- min(allele_counts[1], allele_counts[2]) / sum(allele_counts)
+  return (maf)
+}
+
+filtered_snp <- genotype_data %>%
+  select(where(~ calc_MAF(.) > 0.35))
+
+
 ```
 
 # Haplotype estimation
