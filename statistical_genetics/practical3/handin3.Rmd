@@ -24,7 +24,9 @@ num_individuals <- nrow(genotype_data)
 num_SNPs <- ncol(genotype_data)
 genotype_data <- genotype_data[, (2:num_SNPs)]; head(genotype_data) # filter out the ID column
 ```
-# 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+# Linkage Equilibrium
+
+## 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
 ```{r}
 cat("Number of individuals:", num_individuals)
 cat("\nNumbre of SNPs:", num_SNPs)
@@ -35,7 +37,7 @@ perc_missing <- (n_missing / total_data_points)*100
 cat("\nPercentages missing data:", perc_missing, "%")
 ```
 
-# 2. Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
+## 2. Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
 ```{r}
 snp1 <- genotype_data[,"rs34684677"]
 snp2 <- genotype_data[,"rs2894715"]
@@ -46,7 +48,7 @@ D = stats$D
 ```
 $D = -0.055$ suggest only a weak negative association (repulsion) between the alleles of the two markers, meaning that the alleles at the two loci tend to be inherited independently only sightly more often than expected by pure chance. So, we would say that there is no strong association between the alleles of the two markers. However, the very low p-value of $5.77645e-06$ suggest that the association found is very significant and that there is strong evidence for this outcome being the case, and as such, the null hypothesis of complete random assortment between the alleles of the two markers is rejected.
 
-# 3. Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
+## 3. Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
 
 We can infer the expected haplotype frequencies using the formula $p_{AB} = p_Ap_B+D$
 ```{r}
@@ -95,7 +97,7 @@ cat("\nHaplotype frequency p_TT for rs2894715:", haplo2_TT_freq)
 ```
 For rs34684677 the highest inferred frequency is for haplotype GG. For rs2894715 the highest inferred frequency is for haplotype TT. Overall haplotype GG for rs34684677 has the highest frequency.
 
-# 4. Determine the genotype counts for each SNP. For how many variants do you reject Hardy-Weinberg equilibrium using an ordinary chi-square test without continuity correction? Is this what you would expect by chance?
+## 4. Determine the genotype counts for each SNP. For how many variants do you reject Hardy-Weinberg equilibrium using an ordinary chi-square test without continuity correction? Is this what you would expect by chance?
 ```{r}
 # Initialize a counter for SNPs rejecting HWE
 reject_HWE_count <- 0
@@ -127,7 +129,7 @@ reject_HWE_count
 expected_rejections <- 0.05 * (ncol(genotype_data) - 1); expected_rejections
 ```
 
-# 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
+## 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap (hint: you can use the command image) using the R2 statistic.
 ```{r}
 calc_D <- function(snp1, snp2) {
   # Calculate LD for two SNPs
@@ -155,7 +157,7 @@ for (i in 1:ncol(col_combinations)) {
 }
 
 ```
-Use the equation $R^2=\frac{D^2}{p_A p_B p_a p_b}$ to compute $R^2$ values. (OBS.: the above code never stopped running, so we just left here what we would have done if we had all the D statistics for each unique pair of SNPs)
+Use the equation $R^2=\frac{D^2}{p_A p_B p_a p_b}$ to compute $R^2$ values. (OBS.: the above code never stopped running, and we could not get it to work, so we just left here what we would have done if we had all the D statistics for each unique pair of SNPs)
 ```{r}
 # Extract the R^2 correlation coefficient from the calculated D-statistics
 calc_allele_freq <- function(snp) {
@@ -173,9 +175,11 @@ calc_R2 <- function(snp1, snp2, D) {
   r2 <- D^2 / (pA * (1 - pA) * pB * (1 - pB))
   return (r2)
 }
-calc_R2(genotype_data$rs34684677, genotype_data$rs1839115, D=0.05)
+
+example_R2 <- calc_R2(genotype_data$rs34684677, genotype_data$rs1839115, D=0.05)
+cat("Example value of a R^2 coefficient:", example_R2)
 ```
-# 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
+## 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
 ```{r}
 # filter out SNPs with MAF below 0.35
 calc_MAF <- function(genotypes) {
@@ -187,8 +191,6 @@ calc_MAF <- function(genotypes) {
 
 filtered_snp <- genotype_data %>%
   select(where(~ calc_MAF(.) > 0.35))
-
-
 ```
 
 # Haplotype estimation
@@ -196,7 +198,7 @@ filtered_snp <- genotype_data %>%
 
 ```{r}
 apoe_data_all <- read.table("APOE/APOE.dat", header=TRUE)
-apoe_data <- apoe_data[, (2:ncol(apoe_data))] # filter out first ID column
+apoe_data <- apoe_data_all[, (2:ncol(apoe_data_all))] # filter out first ID column
 ```
 
 ```{r}
@@ -213,7 +215,7 @@ cat("\nPercentages missing data:", perc_missing_apoe, "%")
 
 ## 2. Assuming that all SNPs are bi-allelic, how many haplotypes can theoretically be found for this data set?
 
-Given the fact that each SNP is bi-allic, there are 2 alleles per SNP. This means that there are 2^n haplotypes, where n is the number of SNPs. So here we have 2^4 = 16 theoretical haplotypes.
+Given the fact that each SNP is bi-allic, there are 2 alleles per SNP. This means that there are $2^n$ haplotypes, where n is the number of SNPs in the database. So, theoretically, there can be $2^162$ haplotypes.
 
 ## 3. Estimate haplotype frequencies using the haplo.em function that you will find in the haplo.stats package. How many haplotypes do you find? List the estimated probabilities in decreasing order. Which haplotype number is the most common?
 
