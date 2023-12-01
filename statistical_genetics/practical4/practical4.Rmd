@@ -1,0 +1,110 @@
+```{r}
+library(data.table)
+```
+
+```{r}
+df <- fread("Chr21.dat")
+df <- data.frame(df, header = TRUE)
+df <- df[, (7:ncol(df))] # removed first 6 columns
+```
+
+# 1. How many variants are there in this database? What percentage of the data is missing?
+```{r}
+n_individuals <- nrow(df)
+n_SNPs <- ncol(df)
+cat("Number of individuals:", n_individuals)
+cat("\nNumbre of SNPs:", n_SNPs)
+
+n_missing <- sum(is.na(df))
+total_data_points <- n_individuals * n_SNPs
+perc_missing <- (n_missing / total_data_points)*100
+cat("\nPercentages missing data:", perc_missing, "%")
+```
+
+# 2. Compute the Manhattan distance matrix between the individuals (which is identical to the Minkowsky distance with parameter λ = 1) using R function dist. Include a submatrix of dimension 5 by 5 with the distances between the first 5 individuals in your report.
+```{r}
+minkowski_distance <- function(x1, x2, lambda) {
+  # Minkowski_distance
+  # Lambda = 1 for Manhatten distance
+  # Lambda = 2 for Euclidean distance
+  d <- sum(abs(x1 - x2)^lambda)^(1/lambda)
+  return (d)
+}
+
+# minkowski_distance(c(2,2), c(3,3), lambda=1)
+
+#manhattan_distance <- matrix(NA, nrow=n_individuals, ncol=n_individuals)
+
+manhattan_distance_matrix <- dist(df, method="manhattan")
+submatrix <- dist(df[1:6, ], method="manhattan")
+submatrix
+```
+
+# 3. How does the Manhattan distance relate to the allele sharing distance?
+```{r}
+
+```
+# 4. Apply metric multidimensional scaling (cmdscale) with two dimensions, k = 2, using the Manhattan distance matrix and include the map in your report. Do you think the data come from one homogeneous human population? If not, how many subpopulations do you think the data might come from, and how many individuals pertain to each suppopulation?
+```{r}
+mds <- cmdscale(manhattan_distance_matrix, k = 2)
+plot(mds[, 1], mds[, 2], main="2-dimensional MDS values", xlab="MDS scale 1", ylab="MDS scale 2")
+n_sub1 <- mds[mds[, 1] > 10000]
+n_sub2 <- mds[mds[, 1] < 10000]
+cat("In the first subpopulation there are ", length(n_sub1), "individuals")
+cat("In the second subpopulation there are ", length(n_sub2), "individuals")
+```
+By inspecting the scatterplot above, there is a clear visual pattern suggesting that the data contains 2 sub-populations, as a significant part of data points are clustering on either side, so we are not just talking about outliers. There are 208 individuals in the right cluster and 198 in the cluster.
+
+# 5. What is the goodness-of-fit of the two-dimensional approximation to your distance ma- trix? Explain which criterium you have used.
+
+# 7. We now try a (two-dimensional) non-metric multidimensional scaling using the isoMDs function that you will find in MASS library. We use a random initial configuration and, for the sake of reproducibility, make this random initial configuration with the instructions: set.seed(12345) and init <- scale(matrix(runif(m*n),ncol=m),scale=FALSE) where n represents the sample size and m represents the dimensionality of the solution. Make a plot of the two-dimensional solution. Do the results support that the data come from one homogeneous population?
+```{r}
+set.seed(12345)
+m <- 2 # desired number of dimensions in the result
+init <- scale(matrix(runif(m*n_individuals),ncol=m),scale=FALSE)
+non_para_MDS <- isoMDS(manhattan_distance_matrix, y=init, k=m)
+#stress <- non_para_MDS$stress
+plot(non_para_MDS$points[,1], non_para_MDS$points[,2], main="Result of Non-parametric MDS")
+```
+In the case of applying non-parametric MDS we do not observe any inherently clear clusters in the data, and as such the result supports that the data come from a homogeneous population.
+
+# Try some additional runs of the two-dimensional isoMDS with different initial config- urations. Make a plot of the solutions and report the STRESS for each of them. What do you observe?
+```{r}
+non_parametric_MDS <- function(distance_matrix, m, plot) {
+  # m is number of dimensions in result
+  init <- scale(matrix(runif(m*n_individuals),ncol=m),scale=FALSE)
+  non_para_MDS <- isoMDS(manhattan_distance_matrix, y=init, k=m)
+  stress <- non_para_MDS$stress
+  if (plot) {
+    plot(non_para_MDS$points[,1], non_para_MDS$points[,2], main="Result of Non-parametric MDS")
+  }
+  return (stress)
+}
+
+for (i in seq(1:5)){
+  s <- non_parametric_MDS(manhattan_distance_matrix, 2, plot=TRUE)
+  cat("Stress for ", i,"th iteration: ", s)
+}
+```
+# 9. Compute the stress for a 1, 2, 3, . . . , 50-dimensional solution. How many dimensions are necessary to obtain a good representation with a stress below 10? Make a plot of the stress against the number of dimensions.
+```{r}
+nth_stress <- list()
+for (i in seq(1:50)){
+  s <- non_parametric_MDS(manhattan_distance_matrix, m=i, plot=FALSE)
+  nth_stress[[i]] <- s
+}
+plot(n_dimensions, nth_stress, type="l", col="green", main="Amount of STRESS over number of dimensions for non-parametric MDS", xlab="Number of dimensions", ylab="STRESS")
+```
+COMMENT ON HOW MANY DIMENIONS ARE NEEDED FOR A GOOD REPRESENTATION WITH STRESS LESS THAN 10
+
+# 10. Run the two-dimensional isoMDS a hundred times, each time using a different random initial configuration using the instructions above. Report the stress of the best and the worse run, and plot the corresponding maps. Compare your results to the metric MDS and comment on your findings.
+```{r}
+for (i in seq(1:100)) {
+  non_parametric_MDS( ... )
+}
+```
+
+
+
+
+
