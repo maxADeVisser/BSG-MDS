@@ -1,0 +1,261 @@
+---
+title: "BSG-MDS practical 2 Statistical Genetics"
+author: 
+  - Pyry Satama
+  - Max de Visser
+subtitle: "14/11/2023, submission deadline 21/11/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library(genetics)
+library(data.table)
+library(HardyWeinberg)
+library(haplo.stats)
+library(dplyr)
+#install.packages("tidyr")
+library(tidyr)
+#install.packages("fields")
+library(fields)
+```
+
+```{r}
+genotype_data <- read.table("FOXP2/FOXP2.dat", header = TRUE)
+num_individuals <- nrow(genotype_data)
+num_SNPs <- ncol(genotype_data)
+genotype_data <- genotype_data[, (2:num_SNPs)]; head(genotype_data) # filter out the ID column
+```
+# 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+```{r}
+cat("Number of individuals:", num_individuals)
+cat("\nNumbre of SNPs:", num_SNPs)
+
+n_missing <- sum(is.na(genotype_data))
+total_data_points <- num_individuals * num_SNPs
+perc_missing <- (n_missing / total_data_points)*100
+cat("\nPercentages missing data:", perc_missing, "%")
+```
+
+# 2. Using the function LD from the genetics package, compute the LD statistic D for the SNPs rs34684677 and rs2894715 of the database. Is there significant association between the alleles of these two SNPs?
+```{r}
+snp1 <- genotype_data[,"rs34684677"]
+snp2 <- genotype_data[,"rs2894715"]
+g1 <- genotype(snp1)
+g2 <- genotype(snp2)
+stats <- LD(g1,g2); stats
+D = stats$D;D
+```
+$D = -0.055$ suggest only a weak negative association (repulsion) between the alleles of the two markers, meaning that the alleles at the two loci tend to be inherited independently only sightly more often than expected by pure chance. So, we would say that there is no strong association between the alleles of the two markers. However, the very low p-value of $5.77645e-06$ suggest that the association found is very significant and that there is strong evidence for this outcome being the case, and as such, the null hypothesis of complete random assortment between the alleles of the two markers is rejected.
+
+# 3. Given your previous estimate of D for SNPs rs34684677 and rs2894715, infer the haplotype frequencies. Which haplotype is the most common?
+
+We can infer the expected haplotype frequencies using the formula $p_{AB} = p_Ap_B+D$
+```{r}
+# Separate Genotypes
+alleles1 <- unlist(strsplit(snp1, "/"))
+
+# Count Alleles
+allele_counts1 <- table(alleles1)
+
+# Calculate Frequencies
+allele_frequencies1 <- prop.table(allele_counts1)
+
+# Print the results
+cat("Counts for rs34684677  (G, T):", allele_counts1)
+cat("\nFrequencies for rs34684677  (G, T):", allele_frequencies1)
+
+# Separate Genotypes
+alleles2 <- unlist(strsplit(snp2, "/"))
+
+# Count Alleles
+allele_counts2 <- table(alleles2)
+
+# Calculate Frequencies
+allele_frequencies2 <- prop.table(allele_counts2)
+
+# Print the results
+cat("\nCounts for rs2894715 (G, T):", allele_counts2)
+cat("\nFrequencies for rs2894715  (G, T):", allele_frequencies2)
+
+haplo1_GT_freq <- (allele_frequencies1[1]*allele_frequencies1[2]) + D
+haplo2_GT_freq <- (allele_frequencies2[1]*allele_frequencies2[2]) + D
+
+haplo1_GG_freq <- (allele_frequencies1[1]*allele_frequencies1[1]) + D
+haplo2_GG_freq <- (allele_frequencies2[1]*allele_frequencies2[1]) + D
+
+haplo1_TT_freq <- (allele_frequencies1[2]*allele_frequencies1[2]) + D
+haplo2_TT_freq <- (allele_frequencies2[2]*allele_frequencies2[2]) + D
+
+cat("\n\nHaplotype frequency p_GG for rs34684677:", haplo1_GG_freq)
+cat("\nHaplotype frequency p_GT for rs34684677:", haplo1_GT_freq)
+cat("\nHaplotype frequency p_TT for rs34684677:", haplo1_TT_freq)
+
+cat("\n\nHaplotype frequency p_GG for rs2894715:", haplo2_GG_freq)
+cat("\nHaplotype frequency p_GT for rs2894715:", haplo2_GT_freq)
+cat("\nHaplotype frequency p_TT for rs2894715:", haplo2_TT_freq)
+```
+For rs34684677 the highest inferred frequency is for haplotype GG. For rs2894715 the highest inferred frequency is for haplotype TT. Overall haplotype GG for rs34684677 has the highest frequency.
+
+# 4. Determine the genotype counts for each SNP. For how many variants do you reject Hardy-Weinberg equilibrium using an ordinary chi-square test without continuity correction? Is this what you would expect by chance?
+```{r}
+# Initialize a counter for SNPs rejecting HWE
+reject_HWE_count <- 0
+
+# Iterate over each SNP column in the genotype data
+for(i in 2:ncol(genotype_data)) {
+  # Remove slashes and get the unique alleles
+  modified_genotypes <- gsub("/", "", genotype_data[,i])
+  unique_alleles <- unique(unlist(strsplit(unique(modified_genotypes), "")))
+  
+  # Generate all possible genotype combinations
+  possible_genotypes <- c(paste(unique_alleles[1], unique_alleles[1], sep=""),
+                          paste(unique_alleles[1], unique_alleles[2], sep=""),
+                          paste(unique_alleles[2], unique_alleles[2], sep=""))
+  # Create a count vector with counts for each genotype
+  counts <- table(factor(modified_genotypes, levels = possible_genotypes))
+
+  # Apply HWChisq test
+  hw_chisq <- suppressWarnings(HWChisq(counts, cc=0, verbose = FALSE, x.linked = FALSE))
+  
+  # Check if HWE is rejected for this SNP
+  if (hw_chisq$pval < 0.05) {
+    reject_HWE_count <- reject_HWE_count + 1
+  }
+}
+
+cat("Rejected:", reject_HWE_count)
+# Expected rejections 5% of all SNPs
+expected_rejections <- 0.05 * (ncol(genotype_data) - 1); 
+cat("\nExpected:", expected_rejections)
+```
+210 SNPs reject HWE. Given that the expected number of rejections by chance (5% of all SNPs) is 27.1, the results seem to significantly exceed what you would expect by chance.
+
+# 5. Compute the LD for all the marker pairs in this data base, using the LD function of the packages genetics. Be prepared that this make take a few minutes. Extract the R2 statistics and make an LD heatmap using the R2 statistic.
+```{r}
+# Function to calculate R squared
+calc_R_squared <- function(snp1, snp2) {
+  g1 <- genotype(snp1)
+  g2 <- genotype(snp2)
+  stats <- LD(g1, g2)
+  return(stats$`R^2`)
+}
+
+# Initialize a matrix to store R squared values
+num_snps <- ncol(genotype_data)
+R_squared_matrix <- matrix(NA, nrow = num_snps, ncol = num_snps)
+
+# Loop over each pair of SNPs and calculate R squared
+for (i in 1:(num_snps-1)) {
+  for (j in (i+1):num_snps) {
+    snp1 <- genotype_data[, i]
+    snp2 <- genotype_data[, j]
+    R_squared_matrix[i, j] <- calc_R_squared(snp1, snp2)
+    R_squared_matrix[j, i] <- R_squared_matrix[i, j] # LD is symmetric
+  }
+}
+
+color_resolution <- 15
+my_palette <- viridis(color_resolution) # color pallette
+# Creating an LD heatmap
+image.plot(1:num_snps, 1:num_snps, R_squared_matrix, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=my_palette)
+```
+
+# 6. Make another heatmap obtained by filtering out all variants with a MAF below 0.35, and redoing the computations to obtain the $R^2$ statistics in R. Can you explain any differences observed between the two heatmaps?
+```{r}
+# filter out SNPs with MAF below 0.35
+calc_MAF <- function(genotypes) {
+  alleles <- unlist(strsplit(genotypes, "/"))
+  allele_counts <- table(alleles)
+  maf <- min(allele_counts[1], allele_counts[2]) / sum(allele_counts)
+  return (maf)
+}
+
+filtered_snp <- genotype_data %>%
+  select(where(~ calc_MAF(.) > 0.35))
+
+# Initialize a matrix to store R squared values
+num_snps <- ncol(filtered_snp)
+R_squared_matrix_filtered <- matrix(NA, nrow = num_snps, ncol = num_snps)
+
+# Loop over each pair of SNPs and calculate R squared
+for (i in 1:(num_snps-1)) {
+  for (j in (i+1):num_snps) {
+    snp1 <- filtered_snp[, i]
+    snp2 <- filtered_snp[, j]
+    R_squared_matrix_filtered[i, j] <- calc_R_squared(snp1, snp2)
+    R_squared_matrix_filtered[j, i] <- R_squared_matrix_filtered[i, j] # LD is symmetric
+  }
+}
+
+# Creating an LD heatmap
+image.plot(1:num_snps, 1:num_snps, R_squared_matrix_filtered, main="LD Heatmap (R^2)", xlab="SNP Index", ylab="SNP Index", col=my_palette)
+
+``` 
+When filtering out SNPs with a MAF below 0.35, it seems that the ratio of SNPs with a higher correlation coefficient is higher in comparison to when you do not (as in the first plot). This should make sense as well since we are filtering out alleles that occur the least frequent, and as such, we should increase the probability of finding hablotypes with higher correlation coefficients.
+
+# Haplotype estimation
+## 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+
+```{r}
+apoe_data_all <- read.table("APOE/APOE.dat", header=TRUE)
+apoe_data <- apoe_data_all[, (2:ncol(apoe_data_all))] # filter out first ID column
+```
+
+```{r}
+n_apoe_individuals <- nrow(apoe_data)
+cat("Number of individuals:", n_apoe_individuals)
+num_SNPs_apoe <- ncol(apoe_data)
+cat("\nNumber of SNPs:", num_SNPs_apoe)
+
+n_missing <- sum(is.na(apoe_data))
+total_data_points <- n_apoe_individuals * num_SNPs_apoe
+perc_missing_apoe  <- (n_missing / total_data_points) * 100
+cat("\nPercentages missing data:", perc_missing_apoe, "%")
+```
+
+## 2. Assuming that all SNPs are bi-allelic, how many haplotypes can theoretically be found for this data set?
+
+Given the fact that each SNP is bi-allic, there are 2 alleles per SNP. This means that there are $2^n$ haplotypes, where n is the number of SNPs in the database. So, theoretically, there can be $2^162$ haplotypes.
+
+
+# 3. Estimate haplotype frequencies using the haplo.em function that you will find in the haplo.stats package. How many haplotypes do you find? List the estimated probabilities in decreasing order. Which haplotype number is the most common?
+
+```{r}
+# geno_matrix <- as.matrix(apoe_data)
+
+# Haplotype frequencies
+# haplo_freqs <- haplo.em(geno_matrix)
+
+# sort the probabilities in decreasing order
+# sorted_haplo_freqs <- sort(haplo_freqs$hfreq, decreasing = TRUE)
+
+# print(sorted_haplo_freqs)
+
+# the most common haplotype
+# most_common_haplotype <- which.max(haplo_freqs$hfreq)
+
+# most_common_haplotype
+```
+Line 'haplo_freqs <- haplo.em(genotype_subset)' runs for a long time and then the environment crashes.
+
+# 4. Remove all genetic variants that have a minor allele frequency below 0.10 from the database, and re-run haplo.em. How does this affect the number of haplotypes? Comment on your results.
+```{r}
+# filtered_genotype_data <- apoe_data[, sapply(apoe_data, function(snp) {
+#     alleles <- table(snp)
+#     maf <- min(alleles) / sum(alleles)
+#     return(maf >= 0.10)
+# })]
+
+# Rerun haplo.em with the filtered data
+# haplo_freqs_filtered <- haplo.em(filtered_genotype_data)
+
+# Compare the number of haplotypes
+# num_haplotypes_original <- length(haplo_freqs$hfreq)
+# num_haplotypes_filtered <- length(haplo_freqs_filtered$hfreq)
+
+# Output the number of haplotypes for both datasets
+# cat("Number of haplotypes in original dataset:", num_haplotypes_original, "\n")
+# cat("Number of haplotypes in filtered dataset:", num_haplotypes_filtered, "\n")
+```
+Again, line 'haplo_freqs_filtered <- haplo.em(filtered_genotype_data)' causes environment to crash. Filtering out SNPs with lower MAFs is likely to reduce the overall number of haplotypes. This is because we are removing some of the genetic variability from the dataset, which reduces the possible combinations of alleles (haplotypes).
