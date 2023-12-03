@@ -164,10 +164,8 @@ for (i in 1:100) {
 cat("Best run stress: ", best_run$stress, "\n")
 cat("Worst run stress: ", worst_run$stress, "\n")
 
-# Plot the best run
 plot(best_run$points[,1], best_run$points[,2], main="Best Non-parametric MDS Run", xlab="Dimension 1", ylab="Dimension 2", col="blue")
 
-# Plot the worst run
 plot(worst_run$points[,1], worst_run$points[,2], main="Worst Non-parametric MDS Run", xlab="Dimension 1", ylab="Dimension 2", col="red")
 
 ```
