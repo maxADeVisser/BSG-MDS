@@ -4,6 +4,11 @@ __pycache__/
 *$py.class
 nodes.dmp
 .DS_Store
+*.zip
+APOE*
+FOXP2*
+Atkinson*
+
 
 # C extensions
 *.so
