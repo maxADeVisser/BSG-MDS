@@ -7,7 +7,6 @@ library(MASS)
 df <- fread("Chr21.dat")
 df <- data.frame(df, header = TRUE)
 df <- df[, (7:ncol(df))] # removed first 6 columns
-head(df)
 ```
 
 # 1. How many variants are there in this database? What percentage of the data is missing?
@@ -25,35 +24,22 @@ cat("\nPercentages missing data:", perc_missing, "%")
 
 # 2. Compute the Manhattan distance matrix between the individuals (which is identical to the Minkowsky distance with parameter λ = 1) using R function dist. Include a submatrix of dimension 5 by 5 with the distances between the first 5 individuals in your report.
 ```{r}
-minkowski_distance <- function(x1, x2, lambda) {
-  # Minkowski_distance
-  # Lambda = 1 for Manhatten distance
-  # Lambda = 2 for Euclidean distance
-  d <- sum(abs(x1 - x2)^lambda)^(1/lambda)
-  return (d)
-}
-
-# minkowski_distance(c(2,2), c(3,3), lambda=1)
-
-#manhattan_distance <- matrix(NA, nrow=n_individuals, ncol=n_individuals)
-
 manhattan_distance_matrix <- dist(df, method="manhattan")
 submatrix <- dist(df[1:6, ], method="manhattan")
 submatrix
 ```
 
 # 3. How does the Manhattan distance relate to the allele sharing distance?
-```{r}
 
-```
 The Manhattan distance is inversely related to allele sharing distance
 
-# 4. Apply metric multidimensional scaling (cmdscale) with two dimensions, k = 2, using the Manhattan distance matrix and include the map in your report. Do you think the data come from one homogeneous human population? If not, how many subpopulations do you think the data might come from, and how many individuals pertain to each suppopulation?
+# 4. Apply metric multidimensional scaling (cmdscale) with two dimensions, $k = 2$, using the Manhattan distance matrix and include the map in your report. Do you think the data come from one homogeneous human population? If not, how many subpopulations do you think the data might come from, and how many individuals pertain to each suppopulation?
 ```{r}
-mds <- cmdscale(manhattan_distance_matrix, k = 2)
-plot(mds[, 1], mds[, 2], main="2-dimensional MDS values", xlab="MDS scale 1", ylab="MDS scale 2")
-n_sub1 <- mds[mds[, 1] > 10000]
-n_sub2 <- mds[mds[, 1] < 10000]
+mds <- cmdscale(manhattan_distance_matrix, k = 2, eig=TRUE) # metric MDS
+points <- mds$points
+plot(points[, 1], points[, 2], main="2-dimensional MDS values", xlab="MDS scale 1", ylab="MDS scale 2")
+n_sub1 <- points[points[, 1] > 10000]
+n_sub2 <- points[points[, 1] < 10000]
 cat("In the first subpopulation there are", length(n_sub1), "individuals")
 cat("\nIn the second subpopulation there are", length(n_sub2), "individuals")
 ```
@@ -105,7 +91,7 @@ plot(non_para_MDS$points[,1], non_para_MDS$points[,2], main="Result of Non-param
 ```
 In the case of applying non-parametric MDS we do not observe any inherently clear clusters in the data, and as such the result supports that the data come from a homogeneous population.
 
-# Try some additional runs of the two-dimensional isoMDS with different initial configurations. Make a plot of the solutions and report the STRESS for each of them. What do you observe?
+# 8. Try some additional runs of the two-dimensional isoMDS with different initial configurations. Make a plot of the solutions and report the STRESS for each of them. What do you observe?
 ```{r}
 non_parametric_MDS <- function(distance_matrix, m, plot) {
   # m is number of dimensions in result
@@ -134,13 +120,13 @@ for (i in 1:50){
 plot(1:50, nth_stress, type="l", col="green", main="Amount of STRESS over number of dimensions for non-parametric MDS", xlab="Number of dimensions", ylab="STRESS")
 abline(h=10, col = "red")
 ```
-COMMENT ON HOW MANY DIMENIONS ARE NEEDED FOR A GOOD REPRESENTATION WITH STRESS LESS THAN 10
+To obtain a solution with a STRESS-value less than 10, the lowest number of dimensions we can reduce to is approximately 21-22. Any lower, and the STRESS-value is above 10, indicating a larger discrepancy between the reduced lower dimensional representation and the original representation.
 
 # 10. Run the two-dimensional isoMDS a hundred times, each time using a different random initial configuration using the instructions above. Report the stress of the best and the worse run, and plot the corresponding maps. Compare your results to the metric MDS and comment on your findings.
 ```{r}
 
 run_isoMDS <- function(distance_matrix) {
-  
+  # Function to run non-parametric MDS
   init_config <- scale(matrix(runif(2 * n_individuals), ncol = 2), scale = FALSE)
   isoMDS_result <- isoMDS(distance_matrix, y = init_config, k = 2, trace = FALSE)
   return(list(points = isoMDS_result$points, stress = isoMDS_result$stress))
@@ -170,6 +156,16 @@ plot(worst_run$points[,1], worst_run$points[,2], main="Worst Non-parametric MDS 
 
 ```
 
+# 11. Compute the correlation matrix between the first two dimensions of the metric MDS and the two-dimensional solution of your best non-metric MDS. Comment your findings.
+```{r}
+# data.frame(mds$points, best_run$points)
+combined_df <- data.frame(Metric_MDS_x = mds$points[,1], 
+                          Metric_MDS_y = mds$points[,2],
+                          Non_metric_MDS_x = best_run$points[,1],
+                          Non_metric_MDS_y = best_run$points[,2])
+correlation_matrix <- cor(combined_df, method="pearson")
+correlation_matrix[, 1:2][3:4,] # jsut to filter duplicate values
+```
 
 
 
