@@ -1,3 +1,13 @@
+---
+title: "BSG-MDS practical 4 Population Substructure"
+author: 
+  - Pyry Satama
+  - Max de Visser
+subtitle: "28/11/2023, submission deadline 05/12/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
 ```{r}
 library(data.table)
 library(MASS)
