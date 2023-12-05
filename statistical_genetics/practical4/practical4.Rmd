@@ -166,11 +166,11 @@ combined_df <- data.frame(Metric_MDS_x = mds$points[,1],
                           Non_metric_MDS_x = best_run$points[,1],
                           Non_metric_MDS_y = best_run$points[,2])
 correlation_matrix <- cor(combined_df, method="pearson")
-correlation_matrix[, 1:2][3:4,] # just to filter duplicate values
+correlation_matrix[, 1:2][3:4, ] # just to filter duplicate values
 ```
-There is a very high positive correlation (0.9805275) between the x values of the metric and non-metric MDS. There is also very high positive correlation (0.9928759) between the x value of the metric MDS and y value of the non-metric MDS.
+There is a high correlation between the x-axis values of the metric and best non-metric MDS run. This supports the claim of there being two sub-populations in the data, as we now have two methods finding similar results; a significantly large distinction of two subpopulations in the data. Although the correlation between y-axis values in both approaches is comparatively low, our primary focus lies on the x-axis, where the discernment of the two subpopulations is notably pronounced.
 
-The values -0.04018640 and 0.03338035 indicate a very low correlation between the y dimension of metric MDS and the x and y dimensions of the non-metric MDS. Since these values are close to zero, they suggest there's essentially no linear relationship between these dimensions across the two methods.
+Given the evident lack of a perfect linear relationship in both cases, it is anticipated that the correlation between x- and y-axis values is very low.
 
 
 
