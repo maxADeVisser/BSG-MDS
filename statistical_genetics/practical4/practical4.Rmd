@@ -156,6 +156,7 @@ plot(best_run$points[,1], best_run$points[,2], main="Best Non-parametric MDS Run
 plot(worst_run$points[,1], worst_run$points[,2], main="Worst Non-parametric MDS Run", xlab="Dimension 1", ylab="Dimension 2", col="red")
 
 ```
+Metric MDS shows a clear pattern. Non-metric MDS with high stress values shows more variability and less defined structure in the plots due to the high sensitivity to initial configurations.
  
 
 # 11. Compute the correlation matrix between the first two dimensions of the metric MDS and the two-dimensional solution of your best non-metric MDS. Comment your findings.
