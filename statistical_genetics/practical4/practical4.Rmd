@@ -160,17 +160,16 @@ plot(worst_run$points[,1], worst_run$points[,2], main="Worst Non-parametric MDS 
 
 # 11. Compute the correlation matrix between the first two dimensions of the metric MDS and the two-dimensional solution of your best non-metric MDS. Comment your findings.
 ```{r}
-# data.frame(mds$points, best_run$points)
 combined_df <- data.frame(Metric_MDS_x = mds$points[,1], 
                           Metric_MDS_y = mds$points[,2],
                           Non_metric_MDS_x = best_run$points[,1],
                           Non_metric_MDS_y = best_run$points[,2])
 correlation_matrix <- cor(combined_df, method="pearson")
-correlation_matrix[, 1:2][3:4,] # jsut to filter duplicate values
+correlation_matrix[, 1:2][3:4,] # just to filter duplicate values
 ```
 There is a very high positive correlation (0.9805275) between the x values of the metric and non-metric MDS. There is also very high positive correlation (0.9928759) between the x value of the metric MDS and y value of the non-metric MDS.
 
-The values -0.04018640 and 0.03338035 indicate a very low correlation between the y dimension of metric MDS and the x and y dimensions of the non-metric MDS Since these values are close to zero, they suggest there's essentially no linear relationship between these dimensions across the two methods.
+The values -0.04018640 and 0.03338035 indicate a very low correlation between the y dimension of metric MDS and the x and y dimensions of the non-metric MDS. Since these values are close to zero, they suggest there's essentially no linear relationship between these dimensions across the two methods.
 
 
 
