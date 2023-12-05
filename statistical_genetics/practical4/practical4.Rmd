@@ -43,12 +43,14 @@ n_sub2 <- points[points[, 1] < 10000]
 cat("In the first subpopulation there are", length(n_sub1), "individuals")
 cat("\nIn the second subpopulation there are", length(n_sub2), "individuals")
 ```
-By inspecting the scatterplot above, there is a clear visual pattern suggesting that the data contains 2 sub-populations, as a significant part of data points are clustering on either side, so we are not just talking about outliers. There are 208 individuals in the right cluster and 198 in the cluster.
+By inspecting the scatterplot above, there is a clear visual pattern suggesting that the data contains 2 sub-populations, as a significant part of data points are clustering on either side, so we are not just talking about outliers. There are 208 individuals in the right cluster and 198 in the left cluster.
 
 # 5. What is the goodness-of-fit of the two-dimensional approximation to your distance matrix? Explain which criterium you have used.
+
+Calculating the stress value as a goodness-of-fit measure:
 ```{r}
-# Using STRESS
-mds_distances <- as.matrix(dist(mds))
+mds2 <- cmdscale(manhattan_distance_matrix, k = 2)
+mds_distances <- as.matrix(dist(mds2))
 original_distances <- as.matrix(manhattan_distance_matrix)
 sum_squared_differences <- sum((mds_distances - original_distances)^2)
 sum_squared_original <- sum(original_distances^2)
@@ -124,7 +126,6 @@ To obtain a solution with a STRESS-value less than 10, the lowest number of dime
 
 # 10. Run the two-dimensional isoMDS a hundred times, each time using a different random initial configuration using the instructions above. Report the stress of the best and the worse run, and plot the corresponding maps. Compare your results to the metric MDS and comment on your findings.
 ```{r}
-
 run_isoMDS <- function(distance_matrix) {
   # Function to run non-parametric MDS
   init_config <- scale(matrix(runif(2 * n_individuals), ncol = 2), scale = FALSE)
@@ -155,6 +156,7 @@ plot(best_run$points[,1], best_run$points[,2], main="Best Non-parametric MDS Run
 plot(worst_run$points[,1], worst_run$points[,2], main="Worst Non-parametric MDS Run", xlab="Dimension 1", ylab="Dimension 2", col="red")
 
 ```
+ 
 
 # 11. Compute the correlation matrix between the first two dimensions of the metric MDS and the two-dimensional solution of your best non-metric MDS. Comment your findings.
 ```{r}
@@ -166,6 +168,9 @@ combined_df <- data.frame(Metric_MDS_x = mds$points[,1],
 correlation_matrix <- cor(combined_df, method="pearson")
 correlation_matrix[, 1:2][3:4,] # jsut to filter duplicate values
 ```
+There is a very high positive correlation (0.9805275) between the x values of the metric and non-metric MDS. There is also very high positive correlation (0.9928759) between the x value of the metric MDS and y value of the non-metric MDS.
+
+The values -0.04018640 and 0.03338035 indicate a very low correlation between the y dimension of metric MDS and the x and y dimensions of the non-metric MDS Since these values are close to zero, they suggest there's essentially no linear relationship between these dimensions across the two methods.
 
 
 
