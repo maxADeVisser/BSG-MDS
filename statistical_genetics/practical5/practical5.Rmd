@@ -1,0 +1,90 @@
+---
+title: "BSG-MDS practical 5 Statistical Genetics"
+author: 
+  - Pyry Satama
+  - Max de Visser
+subtitle: "05/12/2023, submission deadline 12/12/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# 1. Perform the alleles test for this data set. Provide the p-value and the odds ratio and comment on the results.
+```{r}
+X <- matrix(c(112, 278, 150, 206, 348, 150),byrow=TRUE,ncol=3)
+colnames(X) <- c("AA", "Aa", "aa")
+rownames(X) <- c("Cases", "Controls")
+X
+Y <- cbind(2*X[,1]+X[,2],2*X[,3]+X[,2]);
+colnames(Y) <- c("A","a");Y
+
+chisq_test <- chisq.test(Y,correct=FALSE)
+cat("\nP-value:", chisq_test$p.value)
+odds_ratio_test <- fisher.test(Y)
+cat("\nOdds ratio:", odds_ratio_test$estimate)
+```
+The small p-value is highly significant indicating strong evidence against the null hypothesis of no association between the allele and Alzheimer's disease.
+
+The odds ratio less than 1, suggests that the presence of the allele under consideration is associated with a reduced odds of having Alzheimer's disease
+
+# 2. Test for association using a codominant, a dominant and a recessive model. Provide the p-values for all the tests and comment on the results.
+```{r}
+# Codominant model
+chisq_test_codominant <- chisq.test(X)
+p_value_codominant_chi <- chisq_test_codominant$p.value
+p_value_codominant_fish <- fisher.test(X)$p.value
+
+# Dominant model
+Y_dominant <- cbind(X[,1], X[,2]+X[,3])
+colnames(Y_dominant) <- c("AA", "Aa or aa")
+rownames(Y_dominant) <- c("Cases", "Control")
+p_value_dominant_chi <- chisq.test(Y_dominant)$p.value
+p_value_dominant_fish <- fisher.test(Y_dominant)$p.value
+
+# Recessive model
+Y_recessive <- cbind(X[,1]+X[,2],X[,3])
+colnames(Y_recessive) <- c("AA or Aa", "aa")
+rownames(Y_recessive) <- c("Cases", "Control")
+p_value_recessive_chi <- chisq.test(Y_recessive)$p.value
+p_value_recessive_fish <- fisher.test(Y_recessive)$p.value
+
+cat("P-value of Chi-squared test for codominant model:", p_value_codominant_chi, "\n")
+cat("P-value of Fisher's test for codominant model:", p_value_codominant_fish, "\n\n")
+
+cat("P-value of Chi-squared test for dominant model:", p_value_dominant_chi, "\n")
+cat("P-value of Fisher's test for dominant model:", p_value_dominant_fish, "\n\n")
+cat("P-value of Chi-squared testfor recessive model:", p_value_recessive_chi, "\n")
+cat("P-value of Fisher's test for recessive model:", p_value_recessive_fish, "\n")
+```
+P-values for codominant model suggest very strong association between Alzheimer's and the genotypes when considering each genotype separately.
+
+P-values of dominant model also suggest an strong association under the dominant model, where individuals with at least one A allele (AA or Aa) are compared to those with none (aa). This suggests that carrying at least one A allele could be linked to an increased or decreased risk of Alzheimer's.
+
+P-values of recessive model are higher that for other models but still suggest a statistically significant association under the recessive model. The relatively higher p-value in this model compared to the others suggests that the recessive model may be a less strong fit for the data, but there is still evidence to suggest that the aa genotype is associated with Alzheimer's.
+
+# 3. Plot the risk of disease as a function of the number of m alleles. Comment on the results. Which model seems most appropriate?
+```{r}
+MM_cases <- X["Cases", "AA"]
+Mm_cases <- X["Cases", "Aa"]
+mm_cases <- X["Cases", "aa"]
+
+MM_controls <- X["Controls", "AA"]
+Mm_controls <- X["Controls", "Aa"]
+mm_controls <- X["Controls", "aa"]
+
+total_MM <- MM_cases + MM_controls
+total_Mm <- Mm_cases + Mm_controls
+total_mm <- mm_cases + mm_controls
+
+risk_MM <- MM_cases / total_MM
+risk_Mm <- Mm_cases / total_Mm
+risk_mm <- mm_cases / total_mm
+
+m_alleles <- c(0, 1, 2)
+
+risks <- c(risk_MM, risk_Mm, risk_mm)
+
+plot(m_alleles, risks, type="b", xlab="Number of m alleles", ylab="Risk of Disease", 
+     main="Risk of Disease vs. Number of m Alleles")
+```
+Based on the plot the risk increases consistently with the number of m alleles. Thus additive model seems most appropriate.
