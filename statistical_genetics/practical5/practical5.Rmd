@@ -58,7 +58,7 @@ cat("P-value of Fisher's test for recessive model:", p_value_recessive_fish, "\n
 ```
 P-values for codominant model suggest very strong association between Alzheimer's and the genotypes when considering each genotype separately.
 
-P-values of dominant model also suggest an strong association under the dominant model, where individuals with at least one A allele (AA or Aa) are compared to those with none (aa). This suggests that carrying at least one A allele could be linked to an increased or decreased risk of Alzheimer's.
+P-values of the dominant model also suggest a strong association, where individuals with at least one A allele (AA or Aa) are compared to those with none (aa). This suggests that carrying at least one A allele could be linked to an increased or decreased risk of Alzheimer's for the specific SNP marker under observation.
 
 P-values of recessive model are higher that for other models but still suggest a statistically significant association under the recessive model. The relatively higher p-value in this model compared to the others suggests that the recessive model may be a less strong fit for the data, but there is still evidence to suggest that the aa genotype is associated with Alzheimer's.
 
@@ -88,3 +88,30 @@ plot(m_alleles, risks, type="b", xlab="Number of m alleles", ylab="Risk of Disea
      main="Risk of Disease vs. Number of m Alleles")
 ```
 Based on the plot the risk increases consistently with the number of m alleles. Thus additive model seems most appropriate.
+
+# 4. Perform Armitage trend test for this data set. Does the null hypothesis $\beta_1=0$ hold? Comment on your response.
+```{r}
+n <- sum(X) # total snips
+cases <- X[1, ] # has disease
+controls <- X[2, ] # does not have disease
+
+# Create genotype matrices
+# replicate values 0, 1, 2 based on the number of snips in cases:
+cas <- rep(c(0,1,2), cases) 
+con <- rep(c(0,1,2), controls)
+
+y <- c(rep(1, sum(cases)), rep(0, sum(controls))) # with/without disease matrix
+x <- c(cas, con)
+
+r <- cor(x,y) # coefficient of correlation
+A <- n*(r^2) # Armitage trend test statistic
+cat("Armitage trend test statistic:", A)
+
+# get p-value
+pvalue <- pchisq(A, df=1, lower.tail=FALSE)
+cat("\nP-value:", pvalue)
+```
+The very low p-value suggests strong evidence against the null hypothesis; that the risk of having Alzeimers does not change as the genotype changes. In other words, the observed trend across the genotypes is very unlikely to be due to random variation alone, and that there is a statistical association between genotype and having Alzeimers or not.
+
+# 5. Is there evidence for association of this marker with the disease? Argument your response.
+The statistical tests conducted, both on the allele level as well as on the genotype level, all showed that there is evidence for statistical association between having Alzeimers and the specific genotype of the SNP. marker.
