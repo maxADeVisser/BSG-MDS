@@ -111,7 +111,7 @@ cat("Armitage trend test statistic:", A)
 pvalue <- pchisq(A, df=1, lower.tail=FALSE)
 cat("\nP-value:", pvalue)
 ```
-The very low p-value suggests strong evidence against the null hypothesis; that the risk of having Alzeimers does not change as the genotype changes. In other words, the observed trend across the genotypes is very unlikely to be due to random variation alone, and that there is a statistical association between genotype and having Alzeimers or not.
+The very low p-value suggests strong evidence against the null hypothesis; that the risk of having Alzheimer does not change as the genotype changes. In other words, the observed trend across the genotypes is very unlikely to be due to random variation alone, and that there is a statistical association between genotype and having Alzeimers or not.
 
 # 5. Is there evidence for association of this marker with the disease? Argument your response.
-The statistical tests conducted, both on the allele level as well as on the genotype level, all showed that there is evidence for statistical association between having Alzeimers and the specific genotype of the SNP. marker.
+The statistical tests conducted, both on the allele level as well as on the genotype level, all showed that there is evidence for statistical association between having Alzheimer and the specific genotype of the SNP. marker.
