@@ -1,0 +1,97 @@
+---
+title: "BSG-MDS practical 5 Statistical Genetics"
+author: 
+  - Pyry Satama
+  - Max de Visser
+subtitle: "05/12/2023, submission deadline 12/12/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(data.table)
+library(ggplot2)
+```
+
+```{r}
+df <- fread("YRI6.raw")
+df <- data.frame(df, header = TRUE)
+genetic_info <- df[, (7:ncol(df))]
+```
+
+# 1. How many individuals and how many SNPs are there in the database? What percentage of the data is missing?
+```{r}
+num_individuals <- nrow(genetic_info)
+num_SNPs <- ncol(genetic_info)
+cat("Number of individuals:", num_individuals)
+cat("\nNumber of SNPs:", num_SNPs)
+
+n_missing <- sum(is.na(genetic_info))
+total_data_points <- num_individuals * num_SNPs
+perc_missing <- (n_missing / total_data_points)*100
+cat("\nPercentages missing data:", perc_missing, "%")
+```
+
+# 2. Compute, for each pair of individuals (and report the first 5), the mean m of the number of alleles shared and the standard deviation s of the number of alleles shared.
+```{r}
+shared_alleles <- function(a, b) {
+  return(2-abs(a-b))
+}
+
+results <- data.frame(Pair = character(), m = numeric(), s = numeric())
+
+for(i in 1:(num_individuals-1)) {
+  for(j in (i+1):num_individuals) {
+    pairs_shared <- apply(genetic_info[c(i,j), ], 2, function(x) shared_alleles(x[1], x[2]))
+    m = mean(pairs_shared)
+    s = sd(pairs_shared)
+    
+    results <- rbind(results, data.frame(Pair = paste("Ind", i, "- Ind", j), m = m, s = s))
+  }
+}
+
+head(results, 5)
+```
+
+# 3. Compute, for each pair of individuals (and report the first 5), the fraction of variants for which the individuals share 0 alleles (p0), and the fraction of variants for which the individuals share 2 alleles (p2). Check if m = 1 − p0 + p2 holds.
+```{r}
+results2 <- data.frame(Pair = character(), p0 = numeric(), p2 = numeric(), m = numeric(), check_m = logical())
+
+for(i in 1:(num_individuals - 1)) {
+  for(j in (i + 1):num_individuals) {
+    pairs_shared <- apply(genetic_info[c(i, j), ], 2, function(x) shared_alleles(x[1], x[2]))
+    
+    # Calculate p0 and p2
+    p0 <- mean(pairs_shared == 0)
+    p2 <- mean(pairs_shared == 2)
+    m <- mean(pairs_shared)
+    
+    # Check if m = 1 - p0 + p2
+    check_m <- abs(m - (1 - p0 + p2)) < 0.0001
+
+    results2 <- rbind(results2, data.frame(Pair = paste("Ind", i, "- Ind", j), p0 = p0, p2 = p2, m = m, check_m = check_m))
+  }
+}
+
+head(results2, 5)
+```
+
+# 4.  Plot m against s and plot p0 against p2. Comment on the results.
+```{r}
+# Plot m against s (standard deviation)
+ggplot(results, aes(x = m, y = s)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Mean vs. Standard Deviation of Shared Alleles",
+       x = "Mean of Shared Alleles (m)",
+       y = "Standard Deviation of Shared Alleles (s)")
+
+# Plot p0 against p2
+ggplot(results2, aes(x = p0, y = p2)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Fraction of 0 Alleles Shared vs. 2 Alleles Shared",
+       x = "Fraction of 0 Alleles Shared (p0)",
+       y = "Fraction of 2 Alleles Shared (p2)")
+```
