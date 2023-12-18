@@ -12,6 +12,9 @@ output:
 ```{r}
 library(data.table)
 library(ggplot2)
+install.packages("SNPRelate")
+library(SNPRelate)
+library(dplyr)
 ```
 
 ```{r}
@@ -36,18 +39,28 @@ cat("\nPercentages missing data:", perc_missing, "%")
 # 2. Compute, for each pair of individuals (and report the first 5), the mean m of the number of alleles shared and the standard deviation s of the number of alleles shared.
 ```{r}
 shared_alleles <- function(a, b) {
+  # if a-b = 0 (no difference), then 2 is returned
+  # if a-b = 2 (largest difference), then 0 is returned
   return(2-abs(a-b))
 }
 
-results <- data.frame(Pair = character(), m = numeric(), s = numeric())
+# To store results:
+num_pairs <- choose(num_individuals, 2) # number of combinations
+results <- data.frame(ind1 = character(num_pairs), ind2 = character(num_pairs), m = numeric(num_pairs), s = numeric(num_pairs))
 
+iids <- df$IID
+
+k <- 1
 for(i in 1:(num_individuals-1)) {
   for(j in (i+1):num_individuals) {
     pairs_shared <- apply(genetic_info[c(i,j), ], 2, function(x) shared_alleles(x[1], x[2]))
     m = mean(pairs_shared)
     s = sd(pairs_shared)
     
-    results <- rbind(results, data.frame(Pair = paste("Ind", i, "- Ind", j), m = m, s = s))
+    # df[i, ]$IID is the ith individuals ID
+    # df[j, ]$IID is the jth individuals ID
+    results[k, ] <- c(iids[i], iids[j], m, s)
+    k <- k + 1
   }
 }
 
@@ -56,8 +69,9 @@ head(results, 5)
 
 # 3. Compute, for each pair of individuals (and report the first 5), the fraction of variants for which the individuals share 0 alleles (p0), and the fraction of variants for which the individuals share 2 alleles (p2). Check if m = 1 − p0 + p2 holds.
 ```{r}
-results2 <- data.frame(Pair = character(), p0 = numeric(), p2 = numeric(), m = numeric(), check_m = logical())
+results2 <- data.frame(ind1 = character(num_pairs), ind2 = character(num_pairs), p0 = numeric(num_pairs), p2 = numeric(num_pairs), m = numeric(num_pairs), check_m = logical(num_pairs)) # to store the results
 
+k <- 1
 for(i in 1:(num_individuals - 1)) {
   for(j in (i + 1):num_individuals) {
     pairs_shared <- apply(genetic_info[c(i, j), ], 2, function(x) shared_alleles(x[1], x[2]))
@@ -68,9 +82,13 @@ for(i in 1:(num_individuals - 1)) {
     m <- mean(pairs_shared)
     
     # Check if m = 1 - p0 + p2
-    check_m <- abs(m - (1 - p0 + p2)) < 0.0001
-
-    results2 <- rbind(results2, data.frame(Pair = paste("Ind", i, "- Ind", j), p0 = p0, p2 = p2, m = m, check_m = check_m))
+    check_m <- abs(m - (1 - p0 + p2)) < 0.0001 # account for small numerical errors
+    
+    
+    # df[i, ]$IID is the ith individuals ID
+    # df[j, ]$IID is the jth individuals ID
+    results2[k, ] <- c(iids[i], iids[j], p0, p2, m, check_m)
+    k <- k + 1
   }
 }
 
@@ -79,19 +97,61 @@ head(results2, 5)
 
 # 4.  Plot m against s and plot p0 against p2. Comment on the results.
 ```{r}
+results_copy <- data.frame(results)[, c("m", "s")]
+results_copy$m <- as.numeric(results_copy$m)
+results_copy$s <- as.numeric(results_copy$s)
+results_rounded <- round(results_copy, 8)
+
 # Plot m against s (standard deviation)
-ggplot(results, aes(x = m, y = s)) +
+ggplot(results_rounded, aes(x = m, y = s)) +
   geom_point() +
   theme_minimal() +
   labs(title = "Mean vs. Standard Deviation of Shared Alleles",
        x = "Mean of Shared Alleles (m)",
        y = "Standard Deviation of Shared Alleles (s)")
 
+results2_copy <- data.frame(results2)[, c("p0", "p2")]
+results2_copy$p0 <- as.numeric(results2_copy$p0)
+results2_copy$p2 <- as.numeric(results2_copy$p2)
+results2_rounded <- round(results2_copy, 8)
+
 # Plot p0 against p2
-ggplot(results2, aes(x = p0, y = p2)) +
+ggplot(results2_rounded, aes(x = p0, y = p2)) +
   geom_point() +
   theme_minimal() +
   labs(title = "Fraction of 0 Alleles Shared vs. 2 Alleles Shared",
        x = "Fraction of 0 Alleles Shared (p0)",
        y = "Fraction of 2 Alleles Shared (p2)")
+```
+For the Mean vs. Standard deviation, we see two distance clusters appear indicating that the data reflects the presence of a subpopulation. Same is present for the 0/2 alleles sharing plot; we see roughly the same pattern with two clusters emerging. The cluster in the upper left corner is always at least sharing one allele (fraction of 0 shared alleles is 0), and a bit less than half of the time they are sharing two alleles indicating that this cluster contains similar genetic information. The cluster in the lower right is more often sharing 0 alleles (about 15% of the times), and they share 2 alleles less frequently then upper left cluster.
+
+# 5. Plot m against s and use the pedigree information of the YRI06.raw file to label the data points in the scatterplot. Recall that column 3 and 4 from the YRI06.raw contain information about the family relationship of the participants. Create two labels: one for individuals that have a parent-offspring relationship and another one for unrelated individuals. Comment on the results.
+```{r}
+related <- function(ind1_ID, ind2_ID) {
+  # Function to check if two individuals have a parent offspring relationship.
+  ind1_info <- df[df$IID == ind1_ID, c("PAT", "MAT")]
+  ind2_info <- df[df$IID == ind2_ID, c("PAT", "MAT")]
+  if (ind1_info$PAT == ind2_ID | ind1_info$MAT == ind2_ID | ind2_info$PAT == ind1_ID | ind2_info$MAT == ind1_ID) {
+    return (TRUE) # the pair of individuals are related
+ } else {
+    return (FALSE) # they are not related
+  }
+}
+
+results_rounded$related <- apply(results[, c("ind1", "ind2")], 1, function(row) related(row[1], row[2]))
+
+# Plot m against s (standard deviation)
+ggplot(results_rounded, aes(x = m, y = s, color = related)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Mean vs. Standard Deviation of Shared Alleles",
+       x = "Mean of Shared Alleles (m)",
+       y = "Standard Deviation of Shared Alleles (s)")
+```
+In the plot, we observe that people who are related have a consistently higher mean of shared alleles between individuals and also a consistently lower standard deviation hereof, which supports the idea of closely related individuals share more genetic information. On the other hand, unrelated individuals are, relative to the related individuals, a bit more scattered both in terms of the mean and the standard deviation. The means of the unrelated individuals is lower and the standard deviation is higher indicating higher variance in the number of shared alleles between unrelated individuals and thus less genetic information shared between individuals.
+
+# 6. Use the package SNPRelate to estimate the IBD probabilities, and plot the probabilities of sharing 0 and 1 IBD alleles (k0 and k1) for all pairs of individuals. Use the pedigree information of the YRI06.raw file to label the data points in the scatterplot (same as before, one colour for parent-offspring relationship and another colour for unrelated individuals).
+
+```{r}
+
 ```
