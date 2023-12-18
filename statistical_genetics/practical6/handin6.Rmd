@@ -153,5 +153,29 @@ In the plot, we observe that people who are related have a consistently higher m
 # 6. Use the package SNPRelate to estimate the IBD probabilities, and plot the probabilities of sharing 0 and 1 IBD alleles (k0 and k1) for all pairs of individuals. Use the pedigree information of the YRI06.raw file to label the data points in the scatterplot (same as before, one colour for parent-offspring relationship and another colour for unrelated individuals).
 
 ```{r}
+ibd <- snpgdsIBDMLE(genetic_info)
+
+related <- function(ind1_ID, ind2_ID) {
+  ind1_info <- df[df$IID == ind1_ID, c("PAT", "MAT")]
+  ind2_info <- df[df$IID == ind2_ID, c("PAT", "MAT")]
+  
+  if (ind1_info$PAT == ind2_ID | ind1_info$MAT == ind2_ID | ind2_info$PAT == ind1_ID | ind2_info$MAT == ind1_ID) {
+    return ("Parent-Offspring") # the pair of individuals are related
+  } else {
+    return ("Unrelated") # they are not related
+  }
+}
+
+# Apply the related function to each pair of individuals in the IBD data
+ibd_data <- data.frame(ID1 = ibd$ID1, ID2 = ibd$ID2)
+ibd_data$Relationship <- apply(ibd_data[, c("ID1", "ID2")], 1, function(row) related(row[1], row[2]))
+
+# Plot the IBD probabilities with labels based on parent-offspring relationship
+ggplot(ibd, aes(x = Z0, y = Z1, color = Relationship)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "IBD Probabilities for Pairs of Individuals",
+       x = "Probability of Sharing 0 IBD Alleles (Z0)",
+       y = "Probability of Sharing 1 IBD Alleles (Z1)")
 
 ```
