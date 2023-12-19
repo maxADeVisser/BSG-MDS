@@ -12,7 +12,7 @@ output:
 ```{r}
 library(data.table)
 library(ggplot2)
-install.packages("SNPRelate")
+library(gdsfmt)
 library(SNPRelate)
 library(dplyr)
 ```
@@ -153,29 +153,63 @@ In the plot, we observe that people who are related have a consistently higher m
 # 6. Use the package SNPRelate to estimate the IBD probabilities, and plot the probabilities of sharing 0 and 1 IBD alleles (k0 and k1) for all pairs of individuals. Use the pedigree information of the YRI06.raw file to label the data points in the scatterplot (same as before, one colour for parent-offspring relationship and another colour for unrelated individuals).
 
 ```{r}
-ibd <- snpgdsIBDMLE(genetic_info)
+# create GDS file: 
+gds_data <- snpgdsCreateGeno("gds_file.gds", 
+                             genmat=as.matrix(genetic_info), 
+                             sample.id = df$IID, 
+                             snp.id=colnames(genetic_info),
+                             snpfirstdim=FALSE)
+genofile <- snpgdsOpen("gds_file.gds") # load GDS file
 
-related <- function(ind1_ID, ind2_ID) {
-  ind1_info <- df[df$IID == ind1_ID, c("PAT", "MAT")]
-  ind2_info <- df[df$IID == ind2_ID, c("PAT", "MAT")]
-  
-  if (ind1_info$PAT == ind2_ID | ind1_info$MAT == ind2_ID | ind2_info$PAT == ind1_ID | ind2_info$MAT == ind1_ID) {
-    return ("Parent-Offspring") # the pair of individuals are related
-  } else {
-    return ("Unrelated") # they are not related
+ibd <- snpgdsIBDMLE(genofile, maf=0.05, num.thread = 2)
+```
+```{r}
+k0_data <- data.frame(ibd$k0) # probability of sharing 0 IBD alleles
+k1_data <- data.frame(ibd$k1) # probability of sharing 1 IBD allele
+
+# To store results
+ibd_results <- data.frame(ind1 = character(num_pairs), ind2 = character(num_pairs), k0 = numeric(num_pairs), k1 = numeric(num_pairs))
+
+# Loop over unique pair of values in the upper triangular part of both matrices
+# and store the probabilities in a dataframe
+k0_rows <- nrow(k0_data)
+k0_cols <- ncol(k0_data)
+k <- 0
+for (i in 1:(k0_rows - 1)) {
+  for (j in (i + 1):k0_cols) {
+    ind1_ <- iids[i]
+    ind2_ <- iids[j]
+    k0_prob <- k0_data[i, j]
+    k1_prob <- k1_data[i, j]
+    
+    ibd_results[k, ] <- c(ind1_, ind2_, k0_prob, k1_prob)
+    k <- k + 1
   }
 }
 
-# Apply the related function to each pair of individuals in the IBD data
-ibd_data <- data.frame(ID1 = ibd$ID1, ID2 = ibd$ID2)
-ibd_data$Relationship <- apply(ibd_data[, c("ID1", "ID2")], 1, function(row) related(row[1], row[2]))
+# created related variable for the dataframe
+ibd_results <- ibd_results[-nrow(ibd_results), ] # remove last empty row 
+ibd_results$related <- apply(ibd_results[, c("ind1", "ind2")], 1, function(row) related(row[1], row[2]))
 
-# Plot the IBD probabilities with labels based on parent-offspring relationship
-ggplot(ibd, aes(x = Z0, y = Z1, color = Relationship)) +
+# round k0 and k1
+precision <- 2
+ibd_results$k0 <- as.numeric(ibd_results$k0, digits = precision)
+ibd_results$k0 <- round(ibd_results$k0, digits = precision)
+ibd_results$k1 <- as.numeric(ibd_results$k1, digits = precision)
+ibd_results$k1 <- round(ibd_results$k1, digits = precision)
+
+ggplot(ibd_results, aes(x = k0, y = k1, color = related)) +
   geom_point() +
   theme_minimal() +
-  labs(title = "IBD Probabilities for Pairs of Individuals",
-       x = "Probability of Sharing 0 IBD Alleles (Z0)",
-       y = "Probability of Sharing 1 IBD Alleles (Z1)")
-
+  labs(title = "k0 vs. k1",
+       x = "k0",
+       y = "k1")
 ```
+
+# 7. Do you think the family relationships between all individuals were correctly specified?
+
+Given the plot with k0 against k1, we observe that if individuals are related through a parent-off spring relation, then k1 is always 1 and k0 is always 0 (all blue points are clustered in the upper left corner). This reflects the fact that, for related individuals, at least 1 IBD allele is inherited from one of the parents - which is generally true. The obtained results for parent offspring related individuals also align with our expected values for k0 and k1 which are 0 and 1, respectively.
+
+In the case of unrelated individuals (red points) we see slightly more scatter of points, but in general all points cluster in the lower right corner which indicates that for unrelated individuals in general k0=1, meaning that in almost all cases of comparisons, there is a high probability of sharing no alleles inherited from a recent common ancestor. Additionally, in all comparisons between unrelated individuals, there is a low probability of sharing one allele inherited from a recent common ancestor. The obtained results for unrelated individuals mostly align with our expected values for k0 and k1 which are 1 and 0, respectively. There are few outliers which have higher values of k1 (red points with k1 > ~0.01), indicating some errors. However, most points are clusters in the lower right corner.
+
+As a result, we believe that almost all family relationships between individuals were correctly specified (with the exception of the few outliers perhaps.)
